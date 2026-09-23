@@ -59,7 +59,7 @@ Responsável pelas regras de negócio.
 Exemplos:
 
 - registrar movimentação;
-- realizar pagamento;
+- registrar liquidação;
 - gerar parcelamento;
 - gerar recorrências;
 - calcular orçamento;
@@ -178,6 +178,18 @@ Não criar engines ou sessões diretamente nas páginas.
 
 O banco armazena fatos financeiros.
 
+A arquitetura separa:
+
+- Transaction: obrigação identificável ou fato econômico de receita/despesa;
+- Settlement: liquidação efetiva e movimento de caixa associado a uma
+  Transaction;
+- Transfer: movimentação direta entre contas próprias, sem alterar receitas,
+  despesas ou resultado econômico.
+
+Transaction isoladamente não altera saldo de conta. O efeito de caixa ocorre
+pelos Settlements, Transfers e demais eventos patrimoniais que venham a ser
+explicitamente suportados.
+
 Indicadores derivados devem ser calculados sempre que razoável.
 
 Exemplos normalmente calculados:
@@ -188,7 +200,9 @@ Exemplos normalmente calculados:
 - comprometimento;
 - patrimônio líquido;
 - percentual utilizado do orçamento;
-- projeções.
+- projeções;
+- valor liquidado de uma Transaction;
+- valor remanescente de uma Transaction.
 
 Evitar duplicar informação derivável.
 
@@ -214,11 +228,18 @@ Preferir arquivamento/desativação para entidades como:
 
 Operações financeiras exigem rastreabilidade.
 
-Quando uma movimentação realizada precisar ser corrigida, priorizar
-cancelamento/estorno quando a exclusão física comprometer o histórico.
+Quando uma Transaction com Settlement precisar ser corrigida, utilizar
+operações compensatórias e relacionamentos de estorno. Ela não pode ser
+cancelada, alterada destrutivamente ou excluída como se a liquidação não
+tivesse ocorrido.
 
-Registros puramente planejados ainda não realizados podem admitir
-exclusão conforme regras de negócio.
+Transactions pendentes e sem Settlement podem admitir cancelamento conforme
+as regras de negócio. Intenções genéricas pertencem ao orçamento, não a
+Transaction.
+
+Relacionamentos de origem financeira devem preferir foreign keys explícitas.
+Pares polimórficos como `origin_type` e `origin_id` não são a estratégia
+principal do projeto.
 
 ---
 

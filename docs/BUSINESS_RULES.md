@@ -22,11 +22,11 @@ Valor planejado.
 
 ### Comprometido
 
-Obrigação financeira conhecida.
+Obrigação financeira identificável, representada por Transaction.
 
 ### Realizado
 
-Evento financeiro efetivamente ocorrido.
+Liquidação financeira efetivamente ocorrida, representada por Settlement.
 
 ### Projetado
 
@@ -36,7 +36,7 @@ Resultado calculado a partir de fatos, compromissos e hipóteses.
 
 ## 2. Datas
 
-Uma movimentação pode possuir:
+Uma Transaction pode possuir:
 
 ### Data de competência
 
@@ -46,9 +46,10 @@ Período econômico ao qual pertence.
 
 Quando a obrigação deve ser paga ou recebida.
 
-### Data de realização
+### Data de liquidação
 
-Quando efetivamente ocorreu financeiramente.
+Registrada em Settlement.settled_at, indica quando o movimento de caixa
+efetivamente ocorreu.
 
 Essas datas não são intercambiáveis.
 
@@ -65,44 +66,89 @@ O Aurora deve suportar análises por:
 
 Exemplo:
 
-Compra realizada em setembro e paga em outubro.
+Despesa com competência em setembro, vencimento em outubro e pagamento em
+novembro.
 
 Competência:
 setembro.
 
 Caixa:
-outubro.
+novembro.
+
+A visão por competência utiliza Transaction.competence_date.
+
+A visão de caixa utiliza Settlement.settled_at.
+
+Uma Transaction sem Settlement não integra a visão de caixa.
 
 A interface deverá deixar claro qual visão está sendo utilizada.
 
 ---
 
-## 4. Status de Movimentação
+## 4. Estado de Transaction
 
-Status iniciais:
+Transaction não representa intenção genérica. Por isso, não existe estado
+PLANNED em Transaction.
 
-- PLANEJADO
-- PENDENTE
-- REALIZADO
-- CANCELADO
+Estados de controle persistidos:
 
-PLANEJADO:
-intenção ainda não convertida em obrigação.
+- ACTIVE
+- CANCELLED
 
-PENDENTE:
-obrigação existente ainda não liquidada.
+ACTIVE indica que a Transaction pode receber Settlements. Não informa o grau
+de liquidação.
 
-REALIZADO:
-financeiramente liquidado.
+CANCELLED representa obrigação invalidada antes de qualquer liquidação.
 
-CANCELADO:
-não deverá ocorrer ou foi invalidado.
+Os estados conceituais PENDING, PARTIAL e SETTLED devem ser derivados para
+evitar redundância:
 
-Status adicionais só devem ser criados mediante necessidade comprovada.
+- PENDING: soma dos Settlements igual a zero;
+- PARTIAL: soma dos Settlements maior que zero e menor que Transaction.amount;
+- SETTLED: soma dos Settlements igual a Transaction.amount.
+
+Lifecycle conceitual:
+
+- sem Settlement: PENDING;
+- liquidação parcial: PARTIAL derivado;
+- liquidação total: SETTLED derivado;
+- cancelamento sem Settlement: CANCELLED.
+
+Uma Transaction com qualquer Settlement não pode ser simplesmente cancelada
+ou apagada. Correções devem preservar o fato original e utilizar operações
+compensatórias.
+
+## 5. Transaction e Settlement
+
+Transaction representa a dimensão econômica ou uma obrigação financeira
+identificável. Seu amount é o valor nominal da obrigação ou fato econômico,
+sempre positivo. O sentido é definido por INCOME ou EXPENSE.
+
+Settlement representa uma liquidação financeira efetiva associada a uma
+Transaction e a uma Account. Uma Transaction pode possuir zero, um ou vários
+Settlements, permitindo liquidações parciais.
+
+Valores derivados:
+
+settled_amount = SUM(Settlement.amount)
+
+remaining_amount = Transaction.amount - settled_amount
+
+Esses valores não devem ser armazenados. A soma das liquidações não pode
+exceder o valor nominal, salvo regra futura explicitamente documentada.
+
+O cadastro ou importação de histórico já liquidado deve criar Transaction e
+Settlement de forma atômica. Não se deve inventar expectativa ou estado
+anterior retroativo.
+
+Exemplo de despesa histórica de R$ 125:
+
+- Transaction EXPENSE com amount de R$ 125;
+- Settlement de R$ 125 na conta correspondente e com a data real conhecida.
 
 ---
 
-## 5. Contas
+## 6. Contas
 
 Uma conta representa local de recursos financeiros.
 
@@ -115,23 +161,24 @@ Exemplos:
 
 Conta pode possuir saldo inicial.
 
-Saldo calculado:
+Saldo calculado conceitualmente:
 
+```text
 saldo inicial
-
-- receitas realizadas
-
-* despesas realizadas
-
-- transferências recebidas
-
-* transferências enviadas
++ Settlements de receitas
+- Settlements de despesas
++ Transfers recebidas
+- Transfers enviadas
++ demais eventos patrimoniais explicitamente suportados no futuro
+```
 
 Não armazenar saldo atual como fonte independente da verdade.
 
+Transaction sem Settlement não altera saldo.
+
 ---
 
-## 6. Transferências
+## 7. Transferências
 
 Transferência deve possuir origem e destino.
 
@@ -147,9 +194,13 @@ despesa no BB
 
 Isso inflaria artificialmente receitas e despesas.
 
+Transfer é entidade própria, deve possuir origem e destino diferentes, valor
+positivo e execução atômica. Reduz o saldo da origem, aumenta o saldo do
+destino e não altera o resultado econômico.
+
 ---
 
-## 7. Cartões de Crédito
+## 8. Cartões de Crédito
 
 Cartão não é categoria de despesa.
 
@@ -171,9 +222,16 @@ não uma segunda despesa de consumo.
 
 Evitar dupla contabilização.
 
+A arquitetura final do módulo permanece pendente. Antes de implementá-lo,
+deverá ser decidido:
+
+- se CardInstallment gerará Transaction;
+- como o pagamento da fatura produzirá efeito de caixa;
+- como compra, parcela e pagamento serão conciliados sem duplicidade.
+
 ---
 
-## 8. Parcelamentos
+## 9. Parcelamentos
 
 Compra parcelada deve possuir:
 
@@ -192,7 +250,7 @@ A soma das parcelas deve ser igual ao valor total.
 
 ---
 
-## 9. Recorrências
+## 10. Recorrências
 
 Recorrência representa regra geradora.
 
@@ -210,7 +268,7 @@ Alterações podem afetar ocorrências futuras conforme decisão explícita.
 
 ---
 
-## 10. Categorias
+## 11. Categorias
 
 Categoria representa natureza financeira.
 
@@ -232,7 +290,7 @@ desativadas, não excluídas.
 
 ---
 
-## 11. Orçamento
+## 12. Orçamento
 
 Orçamento deve ser definido por período e categoria/subcategoria.
 
@@ -250,9 +308,14 @@ Orçado: R$ 1.000
 Comprometido: R$ 600
 Realizado: R$ 450
 
+BudgetItem representa intenção ou limite agregado. Transaction representa
+obrigação ou fato econômico identificável. Settlement representa liquidação
+financeira. Projetado é resultado calculado. Esses conceitos não são
+intercambiáveis.
+
 ---
 
-## 12. Dívidas
+## 13. Dívidas
 
 Dívida representa obrigação financeira estruturada.
 
@@ -274,20 +337,29 @@ Pagamento de dívida pode conter componentes diferentes:
 
 Quando disponíveis, esses componentes devem ser distinguíveis.
 
+A futura implementação deve distinguir principal, juros, encargos, obrigação
+e liquidação. Pagamento de principal não deve ser automaticamente tratado
+como despesa de consumo.
+
 ---
 
-## 13. Investimentos
+## 14. Investimentos
 
 Transferência de dinheiro de conta corrente para investimento não deve
 ser automaticamente interpretada como despesa de consumo.
 
 Investimentos pertencem à composição patrimonial.
 
+Aporte não é automaticamente despesa e resgate não é automaticamente
+receita. Movimentações patrimoniais devem permanecer separadas do resultado
+econômico. Rendimentos, taxas e impostos podem possuir naturezas econômicas
+próprias.
+
 A modelagem detalhada será implementada em versão posterior.
 
 ---
 
-## 14. Patrimônio
+## 15. Patrimônio
 
 Conceitualmente:
 
@@ -301,7 +373,7 @@ documentada conforme novos módulos forem implementados.
 
 ---
 
-## 15. Cenários
+## 16. Cenários
 
 Cenário é hipotético.
 
@@ -315,7 +387,7 @@ O evento existe apenas dentro daquele cenário.
 
 ---
 
-## 16. Projeção
+## 17. Projeção
 
 Projeção pode considerar:
 
@@ -331,19 +403,44 @@ Toda projeção deve informar suas premissas.
 
 ---
 
-## 17. Estornos e Cancelamentos
+## 18. Estornos e Cancelamentos
 
 Uma movimentação realizada não deve simplesmente desaparecer quando
 isso prejudicar a rastreabilidade.
 
-Quando apropriado, utilizar operação de estorno vinculada ao lançamento
-original.
+O estorno deve ser uma operação financeira compensatória, vinculada
+explicitamente ao evento original. O registro original permanece preservado.
+
+Como o efeito de caixa reside em Settlement, a modelagem definitiva do
+estorno deve relacionar liquidações compensatórias às liquidações originais.
+Um relacionamento específico de estorno é preferível a depender apenas de
+Transaction.reverses_transaction_id.
+
+O desenho deve permitir estorno parcial no futuro e impedir que o total
+estornado exceda o valor efetivamente liquidado. A estrutura exata da entidade
+ou relacionamento de estorno será definida antes da implementação do fluxo de
+estornos na v0.2.
 
 Cancelamento não é igual a pagamento ou recebimento.
 
 ---
 
-## 18. Precisão
+## 19. Relacionamentos de origem
+
+Relacionamentos explícitos devem substituir `origin_type + origin_id` como
+estratégia principal.
+
+Exemplos futuros:
+
+- Installment -> Transaction;
+- RecurrenceOccurrence -> Transaction;
+- CardInstallment -> relacionamento financeiro definido pelo domínio;
+- DebtInstallment -> relacionamento explícito;
+- ImportItem -> Transaction.
+
+---
+
+## 20. Precisão
 
 Valores monetários devem utilizar Decimal.
 

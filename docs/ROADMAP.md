@@ -5,7 +5,7 @@
 Objetivo:
 estabelecer fundação técnica e domínio financeiro básico.
 
-Implementar:
+Concluído:
 
 - configuração Python;
 - dependências;
@@ -16,16 +16,21 @@ Implementar:
 - Account;
 - Category;
 - Subcategory;
+
+Próxima etapa da v0.1:
+
 - Transaction;
+- Settlement;
 - repositories básicos;
 - services básicos;
 - testes;
-- configuração inicial do Streamlit.
+- consolidar a configuração inicial do Streamlit.
 
 Critério de conclusão:
 
-O sistema consegue criar e consultar contas, categorias e movimentações
-com persistência e testes automatizados.
+O sistema consegue criar e consultar contas, categorias, Transactions e
+Settlements com persistência e testes automatizados, mantendo separadas as
+dimensões econômica e de caixa.
 
 ---
 
@@ -35,13 +40,14 @@ Implementar:
 
 - receitas;
 - despesas;
-- transferências;
+- Transfer;
 - recorrências;
 - parcelamentos;
 - filtros;
-- edição;
+- edição controlada;
 - cancelamento;
 - estorno;
+- operações financeiras completas;
 - visão mensal.
 
 Critério:

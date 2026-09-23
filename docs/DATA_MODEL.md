@@ -86,13 +86,17 @@ updated_at
 
 # 5. Transaction
 
-Entidade financeira central.
+Representa uma obrigação financeira identificável ou um fato econômico de
+receita/despesa.
+
+Não representa orçamento genérico, projeção, cenário, transferência entre
+contas próprias, pagamento de fatura como nova despesa ou simples
+transferência patrimonial.
 
 Campos:
 
 id
 user_id
-account_id
 category_id
 subcategory_id
 
@@ -105,12 +109,11 @@ amount
 
 competence_date
 due_date
-realized_at
+
+cancelled_at
+cancellation_reason
 
 notes
-
-origin_type
-origin_id
 
 created_at
 updated_at
@@ -119,22 +122,80 @@ Tipos:
 
 INCOME
 EXPENSE
-TRANSFER
 
-Status:
+Estados de controle persistidos:
 
-PLANNED
-PENDING
-REALIZED
+ACTIVE
 CANCELLED
 
-amount deve ser positivo.
+amount é o valor econômico nominal da obrigação ou fato financeiro, deve
+utilizar Numeric/Decimal e ser positivo.
 
 O sentido financeiro será determinado por transaction_type.
 
+ACTIVE indica apenas que a Transaction pode receber Settlements. Os estados
+conceituais de liquidação são derivados, não persistidos:
+
+- PENDING: settled_amount = 0;
+- PARTIAL: 0 < settled_amount < Transaction.amount;
+- SETTLED: settled_amount = Transaction.amount;
+- CANCELLED: cancelamento persistido, permitido somente sem Settlement.
+
+subcategory_id é opcional. category_id é obrigatório e deve possuir tipo
+compatível com transaction_type.
+
+Transaction isoladamente não afeta saldo de conta.
+
+O relacionamento de estorno deve preservar o fato original, permitir estorno
+parcial futuro e impedir estorno superior ao valor liquidado. Como o efeito de
+caixa reside em Settlement, um relacionamento específico entre eventos de
+liquidação é preferível a `reverses_transaction_id` isolado. A estrutura exata
+será definida antes da implementação de estornos na v0.2.
+
+Relacionamentos de origem devem ser explícitos. `origin_type + origin_id` não
+será utilizado como estratégia principal.
+
 ---
 
-# 6. Transfer
+# 6. Settlement
+
+Representa uma liquidação financeira efetiva de uma Transaction.
+
+Campos:
+
+id
+transaction_id
+account_id
+amount
+settled_at
+notes
+created_at
+updated_at
+
+Regras:
+
+- transaction_id e account_id são obrigatórios;
+- amount utiliza Numeric/Decimal e deve ser positivo;
+- settled_at é obrigatório;
+- uma Transaction pode possuir zero, um ou vários Settlements;
+- um Settlement pertence a exatamente uma Transaction;
+- Settlement afeta o saldo da Account;
+- a soma dos Settlements não pode exceder Transaction.amount, salvo regra
+  futura explicitamente documentada;
+- liquidações parciais são permitidas.
+
+Valores derivados e não armazenados:
+
+settled_amount = SUM(Settlement.amount)
+
+remaining_amount = Transaction.amount - settled_amount
+
+O cadastro ou importação de movimentação histórica já liquidada deve criar
+Transaction e Settlement atomicamente, sem inventar expectativa anterior.
+
+---
+
+# 7. Transfer
 
 Representa relacionamento de transferência entre contas.
 
@@ -145,20 +206,24 @@ user_id
 source_account_id
 destination_account_id
 amount
-transfer_date
+transferred_at
 status
 notes
 created_at
 updated_at
 
-Origem e destino não podem ser iguais.
+Origem e destino não podem ser iguais. amount deve ser positivo. A operação
+deve reduzir a conta de origem e aumentar a conta de destino atomicamente.
 
 A implementação deverá garantir que transferência não seja contada
-como receita/despesa comum.
+como receita/despesa comum e não altere o resultado econômico.
+
+Os estados ou mecanismo equivalente de execução de Transfer serão definidos
+antes de sua implementação na v0.2.
 
 ---
 
-# 7. CreditCard
+# 8. CreditCard
 
 Campos:
 
@@ -175,7 +240,7 @@ updated_at
 
 ---
 
-# 8. CardPurchase
+# 9. CardPurchase
 
 Campos:
 
@@ -198,7 +263,7 @@ Uma compra pode gerar uma ou várias parcelas.
 
 ---
 
-# 9. CardInstallment
+# 10. CardInstallment
 
 Campos:
 
@@ -214,7 +279,7 @@ updated_at
 
 ---
 
-# 10. CreditCardInvoice
+# 11. CreditCardInvoice
 
 Campos:
 
@@ -237,9 +302,15 @@ CANCELLED
 O total da fatura deve ser calculado a partir dos itens relacionados
 sempre que possível.
 
+Decisões pendentes antes da implementação do módulo:
+
+- se CardInstallment gerará Transaction;
+- como o pagamento da fatura produzirá efeito de caixa;
+- como impedir dupla contabilização entre compra, parcela e pagamento.
+
 ---
 
-# 11. Recurrence
+# 12. Recurrence
 
 Campos:
 
@@ -266,9 +337,13 @@ WEEKLY
 MONTHLY
 YEARLY
 
+A materialização futura deve utilizar relacionamento explícito, como
+RecurrenceOccurrence -> Transaction. Alterar a regra não pode reescrever
+Transactions ou Settlements históricos.
+
 ---
 
-# 12. InstallmentPlan
+# 13. InstallmentPlan
 
 Utilizado para parcelamentos que não pertencem necessariamente
 a cartão de crédito.
@@ -286,7 +361,7 @@ updated_at
 
 ---
 
-# 13. Installment
+# 14. Installment
 
 Campos:
 
@@ -300,9 +375,12 @@ status
 created_at
 updated_at
 
+Installment deve manter relacionamento explícito com Transaction. Não usar
+identificador polimórfico de origem.
+
 ---
 
-# 14. Debt
+# 15. Debt
 
 Campos:
 
@@ -327,7 +405,7 @@ ser calculado com segurança.
 
 ---
 
-# 15. DebtInstallment
+# 16. DebtInstallment
 
 Campos:
 
@@ -347,9 +425,13 @@ status
 created_at
 updated_at
 
+A implementação futura deve distinguir principal, juros, encargos,
+obrigação e liquidação. Pagamento de principal não é automaticamente
+despesa de consumo.
+
 ---
 
-# 16. Budget
+# 17. Budget
 
 Campos:
 
@@ -367,7 +449,7 @@ user_id + year + month + name
 
 ---
 
-# 17. BudgetItem
+# 18. BudgetItem
 
 Campos:
 
@@ -379,9 +461,12 @@ planned_amount
 created_at
 updated_at
 
+BudgetItem representa intenção ou limite agregado. Não deve gerar
+Transaction apenas por existir.
+
 ---
 
-# 18. Goal
+# 19. Goal
 
 Implementação futura.
 
@@ -398,7 +483,7 @@ updated_at
 
 ---
 
-# 19. Scenario
+# 20. Scenario
 
 Implementação futura.
 
@@ -414,7 +499,7 @@ updated_at
 
 ---
 
-# 20. ScenarioEvent
+# 21. ScenarioEvent
 
 Campos:
 
@@ -436,7 +521,7 @@ Eventos de cenário nunca modificam Transaction.
 
 ---
 
-# 21. InvestmentAccount
+# 22. InvestmentAccount
 
 Implementação futura.
 
@@ -452,7 +537,7 @@ updated_at
 
 ---
 
-# 22. InvestmentTransaction
+# 23. InvestmentTransaction
 
 Implementação futura.
 
@@ -469,6 +554,11 @@ transaction_date
 created_at
 updated_at
 
+Aporte não é automaticamente despesa e resgate não é automaticamente
+receita. Movimentações patrimoniais devem permanecer separadas do resultado
+econômico. Rendimentos, taxas e impostos podem possuir naturezas econômicas
+próprias.
+
 ---
 
 # Relacionamentos principais
@@ -478,6 +568,8 @@ User
 ├── Category
 │ └── Subcategory
 ├── Transaction
+│ └── Settlement
+├── Transfer
 ├── CreditCard
 │ ├── CardPurchase
 │ │ └── CardInstallment

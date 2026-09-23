@@ -120,6 +120,7 @@ A arquitetura deve comportar:
 - Categorias
 - Subcategorias
 - Movimentações
+- Liquidações
 - Recorrências
 - Parcelamentos
 - Faturas
@@ -157,7 +158,7 @@ Existe uma parcela de R$ 300 vencendo em outubro.
 
 ### Realizado
 
-Evento financeiro efetivamente ocorrido.
+Liquidação financeira efetivamente ocorrida.
 
 Exemplo:
 
@@ -177,25 +178,36 @@ Esses conceitos NÃO devem ser tratados como sinônimos.
 
 ## 7. Movimentações
 
-Movimentação é uma das entidades centrais do sistema.
+Transaction é uma das entidades centrais do sistema e representa uma
+obrigação financeira identificável ou um fato econômico de receita/despesa.
+
+Transaction não representa intenção genérica de orçamento, projeção,
+cenário, transferência entre contas próprias ou simples movimentação
+patrimonial.
 
 Deve permitir representar pelo menos:
 
 - receita;
 - despesa;
-- transferência;
 - competência;
 - vencimento;
-- liquidação;
 - descrição;
 - categoria;
 - subcategoria;
-- conta;
-- cartão, quando aplicável;
-- valor;
-- status;
-- origem;
+- valor econômico nominal;
+- cancelamento;
+- estorno;
 - observações.
+
+Settlement representa a liquidação financeira efetiva de uma Transaction.
+
+Uma Transaction pode possuir zero, um ou vários Settlements. Settlement
+identifica conta, valor e data da liquidação e é o evento que afeta o saldo
+da conta. Valores liquidado e remanescente são derivados e não devem ser
+armazenados redundantemente.
+
+Transfer representa movimentação direta entre contas próprias e permanece
+separada de Transaction e Settlement.
 
 A modelagem definitiva deve ser documentada em DATA_MODEL.md antes
 de migrations relevantes.
@@ -535,6 +547,7 @@ Escopo:
 - categorias;
 - contas;
 - estrutura inicial de movimentações;
+- estrutura inicial de liquidações;
 - services/repositories correspondentes;
 - testes da fundação.
 
