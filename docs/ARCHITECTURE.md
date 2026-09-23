@@ -1,272 +1,301 @@
 # Aurora Finance — Arquitetura
 
-## 1. Visão Geral
+## 1. Estado arquitetural
 
-Aurora Finance é uma aplicação pessoal de gestão, planejamento e
-inteligência financeira.
+O núcleo financeiro Python está implementado e deve ser preservado. A interface
+Streamlit existente é um protótipo funcional temporário e a referência de
+equivalência da migração web.
 
-A arquitetura deve privilegiar:
+A arquitetura definitiva de apresentação será React + TypeScript + Vite,
+consumindo uma API FastAPI. Esses componentes ainda estão planejados e não
+existem no repositório.
 
-- separação de responsabilidades;
-- regras financeiras independentes da interface;
-- testabilidade;
-- rastreabilidade;
-- evolução incremental;
-- futura migração de SQLite para PostgreSQL.
+## 2. Arquitetura alvo
 
-A aplicação utiliza inicialmente:
-
-- Python
-- Streamlit
-- SQLAlchemy
-- Alembic
-- SQLite
-- Pandas
-- Plotly
-
----
-
-## 2. Arquitetura em Camadas
-
-Fluxo padrão:
-
-UI
+```text
+GitHub Pages
 ↓
-Service
+React + TypeScript + Vite
+↓ HTTPS / JSON
+FastAPI (/api/v1)
 ↓
-Repository
+Services / Query Services
 ↓
-ORM
+Repositories
 ↓
-Database
+SQLAlchemy
+↓
+SQLite (desenvolvimento) / PostgreSQL (produção)
+```
 
-### UI — pages/ e components/
+Responsabilidades:
 
-Responsável por:
+- React apresenta dados e controla interação; não contém regras financeiras oficiais.
+- FastAPI é adaptador HTTP; valida e traduz contratos, mas não duplica o domínio.
+- Services executam regras de negócio e casos de uso.
+- Query services executam leituras, filtros e agregações.
+- Repositories encapsulam persistência e não decidem regras financeiras.
+- Models representam entidades persistentes.
+- SQLAlchemy e Alembic permanecem a camada de persistência e evolução do schema.
 
-- apresentação;
-- formulários;
-- filtros;
-- navegação;
-- feedback ao usuário.
+## 3. GitHub Pages
 
-A UI não deve implementar regras financeiras relevantes.
+GitHub Pages hospedará exclusivamente o frontend estático compilado. Não
+executa Python, FastAPI, SQLAlchemy, Alembic, migrations, SQLite ou qualquer
+banco do backend.
 
-### Services — services/
+O backend será hospedado separadamente, em HTTPS. O frontend consumirá a URL
+pública da API. A implantação do backend e a escolha do provedor permanecem
+decisões futuras.
 
-Responsável pelas regras de negócio.
+## 4. Monorepo e estrutura
 
-Exemplos:
+O projeto permanece em monorepo. Para evitar movimentação sem benefício, o
+backend Python continua na raiz. Não criar `backend/` sem decisão posterior.
 
-- registrar movimentação;
-- registrar liquidação;
-- gerar parcelamento;
-- gerar recorrências;
-- calcular orçamento;
-- realizar transferência;
-- calcular projeções.
+Estrutura conceitual futura:
 
-### Repositories — repositories/
-
-Responsável pelo acesso aos dados.
-
-Exemplos:
-
-- buscar movimentações;
-- salvar conta;
-- consultar categorias;
-- persistir parcelas.
-
-Repositories não devem decidir regras financeiras.
-
-### Models — models/
-
-Representação ORM das entidades persistentes.
-
-### Schemas — schemas/
-
-Validação e transporte de dados entre camadas.
-
----
-
-## 3. Estrutura
-
+```text
 aurora-finance/
-│
-├── app.py
-├── assets/
-├── components/
-├── database/
-│ ├── connection.py
-│ └── migrations/
-├── docs/
-├── imports/
+├── api/
+│   ├── main.py
+│   ├── dependencies/
+│   ├── errors/
+│   ├── routes/
+│   └── schemas/
+├── frontend/
+│   ├── public/
+│   └── src/
+│       ├── api/
+│       ├── components/
+│       ├── features/
+│       ├── layouts/
+│       ├── pages/
+│       ├── routes/
+│       ├── types/
+│       ├── utils/
+│       └── styles/
 ├── models/
-├── pages/
 ├── repositories/
-├── schemas/
 ├── services/
+├── database/
 ├── tests/
-├── utils/
-├── .env.example
-├── .gitignore
-├── AGENTS.md
-├── README.md
-└── requirements.txt
+├── pages/          # Streamlit temporário
+├── components/     # Streamlit temporário
+└── app.py          # Streamlit temporário
+```
 
----
+Os diretórios `api/` e `frontend/` são planejados; não estão implementados.
 
-## 4. Dependências entre Camadas
+## 5. Dependências permitidas
 
-Permitido:
-
-pages → services
+```text
+frontend → HTTP/JSON
+api routes → schemas/dependencies → services/query services
 services → repositories
+query services → models/SQLAlchemy para leitura
 repositories → models
 models → database
+```
 
 Evitar:
 
-pages → database
-pages → SQL direto
-pages → repositories quando existir service apropriado
-models → pages
-repositories → Streamlit
-services → Streamlit
+- frontend acessando banco ou contendo cálculos financeiros oficiais;
+- routes implementando regras financeiras;
+- repositories fazendo commit ou contendo regras complexas;
+- services dependendo de FastAPI, React ou Streamlit;
+- ORM sendo exposto diretamente como contrato HTTP;
+- duplicação das consultas de competência, vencimento e caixa.
 
-O domínio financeiro deve continuar funcional independentemente
-da interface Streamlit.
+## 6. API
 
----
+A API planejada usará o prefixo `/api/v1`. A camada FastAPI será responsável
+por:
 
-## 5. Banco de Dados
+- validar payload e parâmetros;
+- obter a Session do request;
+- resolver o futuro `current_user`;
+- converter contratos HTTP em tipos do domínio;
+- chamar services ou query services;
+- serializar respostas;
+- traduzir exceptions do domínio;
+- aplicar CORS;
+- nunca retornar stack trace.
 
-Banco inicial:
+Os contratos conceituais estão em `docs/API_CONTRACTS.md`.
 
-SQLite
+## 7. Sessão e transação
 
-ORM:
+Cada request terá uma Session SQLAlchemy exclusiva:
 
-SQLAlchemy
+```text
+abrir
+→ executar caso de uso
+→ commit único
+→ rollback em erro
+→ fechar
+```
 
-Migrations:
+Services podem usar `flush`, mas não devem assumir commits arbitrários.
+Repositories não fazem commit. A operação composta Transaction + Settlement
+deve permanecer atômica.
 
-Alembic
+## 8. Dinheiro
 
-A aplicação não deve depender de particularidades do SQLite que
-impeçam futura migração para PostgreSQL.
+Internamente, valores monetários continuam como `Decimal` e `Numeric`. Na
+fronteira HTTP são strings decimais canônicas:
 
-IDs devem utilizar estratégia consistente.
+```text
+JSON string → Decimal → service → Numeric
+Numeric → Decimal → JSON string
+```
 
-Valores monetários devem utilizar Numeric/Decimal.
+O frontend formata BRL. `float` não é fonte de verdade financeira.
 
-Datas devem utilizar tipos date/datetime adequados.
+## 9. Datas e timezone
 
----
+Timezone operacional: `America/Sao_Paulo`.
 
-## 6. Sessões
+- `competence_date` e `due_date` são datas econômicas sem horário;
+- eventos como `settled_at`, `cancelled_at`, `created_at` e `updated_at`
+  são timezone-aware;
+- o frontend envia ISO 8601 com offset;
+- a API rejeita datetime ingênuo;
+- o backend normaliza eventos para UTC;
+- a API retorna ISO 8601 timezone-aware, preferencialmente UTC;
+- o frontend apresenta em `America/Sao_Paulo`.
 
-A criação de sessões SQLAlchemy deve ser centralizada em:
+Consultas dependentes de data atual deverão utilizar uma fonte temporal
+explícita baseada nessa política. Não devem depender do timezone acidental do
+processo nem de `date.today()`.
 
-database/connection.py
+## 10. Frontend e design system
 
-Não criar engines ou sessões diretamente nas páginas.
+A aplicação React será organizada por features, sem complexidade desnecessária.
+Nenhuma biblioteca visual está escolhida.
 
----
+O design system partirá de:
 
-## 7. Estado Financeiro
+- tokens de cor;
+- tipografia;
+- espaçamento;
+- radius;
+- sombras;
+- estados interativos;
+- responsividade;
+- acessibilidade.
 
-O banco armazena fatos financeiros.
+Rotas iniciais:
 
-A arquitetura separa:
+- `/` ou entrada equivalente;
+- `/movimentacoes`;
+- `/contas`;
+- `/categorias`.
 
-- Transaction: obrigação identificável ou fato econômico de receita/despesa;
-- Settlement: liquidação efetiva e movimento de caixa associado a uma
-  Transaction;
-- Transfer: movimentação direta entre contas próprias, sem alterar receitas,
-  despesas ou resultado econômico.
+A estrutura não deve bloquear módulos futuros, mas eles não serão antecipados.
 
-Transaction isoladamente não altera saldo de conta. O efeito de caixa ocorre
-pelos Settlements, Transfers e demais eventos patrimoniais que venham a ser
-explicitamente suportados.
+## 11. Roteamento no GitHub Pages
 
-Indicadores derivados devem ser calculados sempre que razoável.
+A decisão inicial é `HashRouter`, por funcionar com refresh direto no GitHub
+Pages sem rewrite de servidor. `BrowserRouter` poderá ser reconsiderado quando
+houver hospedagem com fallback SPA apropriado.
 
-Exemplos normalmente calculados:
+O `base` do Vite deverá refletir o nome real e a capitalização real do
+repositório no momento do deploy. Não há valor fixado nesta documentação.
 
-- saldo atual;
-- total mensal;
-- resultado mensal;
-- comprometimento;
-- patrimônio líquido;
-- percentual utilizado do orçamento;
-- projeções;
-- valor liquidado de uma Transaction;
-- valor remanescente de uma Transaction.
+## 12. Ambientes e configuração
 
-Evitar duplicar informação derivável.
+Desenvolvimento planejado:
 
----
+- React/Vite: `localhost:5173`;
+- FastAPI: `localhost:8000`;
+- banco: SQLite local.
 
-## 8. Integridade
+Produção planejada:
 
-Relacionamentos financeiros importantes devem utilizar constraints
-e foreign keys sempre que aplicável.
+- frontend: GitHub Pages;
+- backend: host HTTPS separado;
+- banco: PostgreSQL.
 
-Registros utilizados historicamente não devem desaparecer apenas porque
-deixaram de ser utilizados.
+`VITE_API_BASE_URL` poderá conter a URL pública da API. Toda variável
+`VITE_*` é pública. `DATABASE_URL` e demais segredos pertencem somente ao
+backend.
 
-Preferir arquivamento/desativação para entidades como:
+## 13. Autenticação e segurança
+
+Autenticação real ainda não está implementada nem teve provedor escolhido.
+A API financeira não poderá ser publicada na internet sem autenticação
+adequada.
+
+Fluxo futuro:
+
+```text
+React
+→ credencial, token ou sessão
+→ FastAPI
+→ current_user
+→ services
+```
+
+O cliente nunca escolhe `user_id`. Em desenvolvimento local poderá existir um
+usuário operacional explicitamente configurado. Produção deve impedir criação
+automática de usuário e qualquer modo operacional inseguro.
+
+Regras adicionais:
+
+- CORS usa origens explícitas e não é autenticação;
+- HTTPS é obrigatório em produção;
+- ownership é sempre verificado no backend;
+- payloads são validados;
+- segredos nunca entram no frontend;
+- stack traces não são retornados;
+- payload financeiro completo não é logado por padrão;
+- bancos reais, exports e credenciais permanecem fora do Git.
+
+## 14. SQLite para PostgreSQL
+
+A evolução preservará SQLAlchemy, Alembic, `Numeric`, `Decimal`, constraints
+e migrations. Antes da produção deverão ser validados:
+
+- timezone;
+- enums;
+- `SELECT FOR UPDATE`;
+- concorrência de liquidações;
+- ordenação de `NULL`;
+- pesquisa case-insensitive;
+- funções SQL usadas pelos query services;
+- execução integral das migrations em PostgreSQL limpo.
+
+Nenhum provedor PostgreSQL está escolhido.
+
+## 15. Streamlit temporário
+
+O Streamlit permanece congelado como baseline. Só será removido quando React +
+FastAPI reproduzirem:
 
 - contas;
-- cartões;
-- categorias.
+- categorias e subcategorias;
+- criação de movimentação;
+- criação já liquidada;
+- listagem, filtros, paginação e detalhe;
+- Settlement parcial e integral;
+- cancelamento e seu bloqueio após liquidação;
+- competência, vencimento e caixa;
+- estados vazios, erros e formatação pt-BR;
+- resultados financeiros equivalentes.
 
----
+Também são requisitos: autenticação de produção, frontend publicado, backend
+seguro e documentação atualizada.
 
-## 9. Exclusão
+## 16. Estado financeiro preservado
 
-Operações financeiras exigem rastreabilidade.
+A migração não altera o domínio:
 
-Quando uma Transaction com Settlement precisar ser corrigida, utilizar
-operações compensatórias e relacionamentos de estorno. Ela não pode ser
-cancelada, alterada destrutivamente ou excluída como se a liquidação não
-tivesse ocorrido.
+- Transaction representa obrigação ou fato econômico;
+- Settlement representa liquidação e efeito de caixa;
+- estados de liquidação permanecem derivados;
+- Transfer permanece entidade futura separada;
+- valores derivados não devem ser persistidos apenas para a interface;
+- correções financeiras preservam rastreabilidade.
 
-Transactions pendentes e sem Settlement podem admitir cancelamento conforme
-as regras de negócio. Intenções genéricas pertencem ao orçamento, não a
-Transaction.
-
-Relacionamentos de origem financeira devem preferir foreign keys explícitas.
-Pares polimórficos como `origin_type` e `origin_id` não são a estratégia
-principal do projeto.
-
----
-
-## 10. Evolução
-
-Toda alteração estrutural do banco deve utilizar migration.
-
-Não alterar manualmente banco de produção para acompanhar mudança
-de model.
-
-Alterações relevantes devem atualizar:
-
-- DATA_MODEL.md;
-- BUSINESS_RULES.md;
-- testes correspondentes.
-
----
-
-## 11. Segurança
-
-Nunca versionar:
-
-- .env;
-- bancos pessoais;
-- exports financeiros;
-- tokens;
-- credenciais;
-- backups contendo dados reais.
-
-Dados financeiros reais devem permanecer fora do Git.
+Regras completas permanecem em `BUSINESS_RULES.md` e `DATA_MODEL.md`.

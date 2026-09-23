@@ -37,17 +37,26 @@ Planejamento financeiro e projeção futura são funcionalidades centrais.
 
 ## 3. Stack Principal
 
-- Python
-- Streamlit
-- SQLAlchemy
-- Alembic
-- SQLite
-- Pandas
-- Plotly
-- Git
-- GitHub
+Backend e persistência:
 
-SQLite será utilizado inicialmente.
+- Python;
+- FastAPI, planejado como adaptador HTTP;
+- SQLAlchemy;
+- Alembic;
+- SQLite no desenvolvimento local;
+- PostgreSQL em produção;
+- pytest.
+
+Frontend definitivo, planejado:
+
+- React;
+- TypeScript;
+- Vite;
+- GitHub Pages para hospedagem exclusiva do frontend estático.
+
+O Streamlit existente é um protótipo funcional temporário e uma referência
+de equivalência durante a migração. Ele não é a interface definitiva e não
+deve receber novos domínios.
 
 A camada de persistência não deve depender de comportamentos exclusivos
 do SQLite que dificultem futura migração para PostgreSQL.
@@ -55,6 +64,31 @@ do SQLite que dificultem futura migração para PostgreSQL.
 ---
 
 ## 4. Arquitetura
+
+Arquitetura alvo:
+
+```text
+GitHub Pages
+↓
+React + TypeScript + Vite
+↓ HTTPS / JSON
+FastAPI
+↓
+Services / Query Services
+↓
+Repositories
+↓
+SQLAlchemy
+↓
+SQLite (desenvolvimento) / PostgreSQL (produção)
+```
+
+FastAPI é um adaptador HTTP e não deve conter regras financeiras. React é
+responsável por apresentação e interação, não por regras financeiras oficiais.
+
+O projeto permanece em monorepo. O backend Python existente permanece na raiz
+por enquanto. A evolução adicionará `api/` e `frontend/`; não mover o backend
+para `backend/` sem autorização arquitetural explícita.
 
 Separar responsabilidades entre:
 
@@ -65,6 +99,16 @@ Modelos ORM e entidades persistentes.
 ### schemas/
 
 Objetos de entrada, validação e transferência de dados.
+
+### api/
+
+Camada HTTP planejada: aplicação FastAPI, rotas, schemas de API, dependencies
+e tradução de erros. Não deve duplicar regras dos services.
+
+### frontend/
+
+Aplicação React/TypeScript/Vite planejada. Formata e apresenta dados recebidos
+da API, sem recalcular resultados financeiros oficiais.
 
 ### repositories/
 
@@ -81,14 +125,14 @@ diretamente nas páginas Streamlit.
 
 ### pages/
 
-Interface e navegação.
+Interface e navegação do protótipo Streamlit temporário.
 
 Páginas não devem acessar diretamente o banco quando houver repository
 ou service apropriado.
 
 ### components/
 
-Componentes visuais reutilizáveis.
+Componentes visuais reutilizáveis do protótipo Streamlit enquanto ele existir.
 
 ### database/
 
@@ -415,6 +459,29 @@ Utilizar Decimal / Numeric com precisão adequada.
 
 Arredondamentos devem possuir regras explícitas quando necessários.
 
+Na fronteira HTTP, valores monetários devem ser transportados como strings
+decimais canônicas, por exemplo `"1234.56"`. A API converte essas strings para
+`Decimal`; nunca utilizar `float` como fonte de verdade financeira. A formatação
+`R$ 1.234,56` pertence ao frontend.
+
+---
+
+## 18.1 Datas e timezone
+
+O timezone operacional é `America/Sao_Paulo`.
+
+- datas econômicas, como competência e vencimento, permanecem `date`;
+- eventos temporais devem ser timezone-aware;
+- a fronteira HTTP usa ISO 8601 com offset;
+- a API deve rejeitar datetime ingênuo;
+- o backend normaliza eventos temporais para UTC;
+- a API retorna datetime timezone-aware, preferencialmente UTC;
+- o frontend apresenta no timezone operacional.
+
+Regras dependentes de "hoje" não devem depender de `date.today()` ou do
+timezone acidental do processo. Devem utilizar uma fonte temporal explícita
+baseada em `America/Sao_Paulo`.
+
 ---
 
 ## 19. Segurança
@@ -431,6 +498,23 @@ Nunca versionar:
 .env deve permanecer no .gitignore.
 
 Manter apenas .env.example no repositório.
+
+Na arquitetura web:
+
+- GitHub Pages hospeda somente o frontend estático;
+- o backend é hospedado separadamente e consumido por HTTPS;
+- CORS utiliza origens explícitas e não substitui autenticação;
+- toda variável `VITE_*` é pública;
+- `DATABASE_URL` e qualquer segredo existem apenas no backend;
+- payloads devem ser validados;
+- ownership deve ser verificado no backend;
+- stack traces não devem ser enviados ao frontend;
+- payload financeiro completo não deve ser registrado por padrão.
+
+A API financeira não pode ser publicada na internet sem autenticação adequada.
+Em desenvolvimento poderá existir um `current_user` operacional explicitamente
+configurado. Em produção não se deve criar usuário automaticamente nem permitir
+modo operacional inseguro. O cliente nunca escolhe `user_id`.
 
 ---
 
@@ -508,6 +592,14 @@ O agente NÃO deve:
 - duplicar lógica financeira entre páginas;
 - colocar regras de negócio complexas diretamente no Streamlit;
 - realizar refatorações amplas não solicitadas durante correções pequenas.
+- adicionar novos domínios ao protótipo Streamlit;
+- duplicar regras financeiras em FastAPI ou React;
+- transportar dinheiro como `float` nos contratos HTTP;
+- colocar segredos em variáveis `VITE_*`;
+- mover o backend atual para `backend/` sem autorização;
+- remover Streamlit antes da equivalência funcional documentada;
+- publicar uma API financeira sem autenticação adequada;
+- avançar novos domínios enquanto a migração web estiver em andamento.
 
 Quando existir ambiguidade financeira relevante, perguntar antes de
 assumir uma regra.
@@ -533,23 +625,26 @@ permite implementá-las.
 
 ## 25. Prioridade Atual
 
-A prioridade inicial é a versão:
+A Foundation financeira está concluída: models fundamentais, Transaction,
+Settlement, repositories, services, query services, migrations, testes e uma
+vertical slice Streamlit estão implementados.
 
-Aurora Finance v0.1 — Foundation
+A prioridade atual é **Web Platform Migration**:
 
-Escopo:
+1. documentação;
+2. preparação da application layer;
+3. FastAPI;
+4. testes da API;
+5. fundação React/Vite;
+6. equivalência de Contas e Categorias;
+7. equivalência de Movimentações;
+8. validação funcional;
+9. preparação de produção;
+10. retirada do Streamlit.
 
-- configuração do projeto;
-- conexão com banco;
-- SQLAlchemy;
-- Alembic;
-- modelos fundamentais;
-- categorias;
-- contas;
-- estrutura inicial de movimentações;
-- estrutura inicial de liquidações;
-- services/repositories correspondentes;
-- testes da fundação.
+Até a equivalência web, não avançar Transfer, Recurrence, Installment,
+CreditCard, Debt, Budget, Goal, Scenario, Investment ou Aurora Insights.
 
-Não iniciar Dashboard, Insights, investimentos ou cenários antes que
-a fundação esteja consistente.
+O Streamlit só poderá ser removido após React + FastAPI reproduzirem todos os
+fluxos da vertical slice, com equivalência financeira, autenticação de produção,
+frontend publicado, backend seguro e documentação atualizada.

@@ -1,141 +1,157 @@
 # Aurora Finance — Roadmap
 
-## v0.1 — Foundation
+## v0.1 — Foundation — concluída
 
-Objetivo:
-estabelecer fundação técnica e domínio financeiro básico.
-
-Concluído:
+Entregue:
 
 - configuração Python;
-- dependências;
-- SQLAlchemy;
-- Alembic;
-- SQLite;
-- User;
-- Account;
-- Category;
-- Subcategory;
+- SQLAlchemy, Alembic e SQLite;
+- User, Account, Category e Subcategory;
+- Transaction e Settlement;
+- repositories e services básicos;
+- query services para competência, vencimento e caixa;
+- constraints, ownership, estados derivados e atomicidade;
+- testes automatizados;
+- primeira vertical slice funcional em Streamlit para Movimentações, Contas e
+  Categorias.
 
-Próxima etapa da v0.1:
+O Streamlit passa a ser baseline temporário de equivalência, não a interface
+definitiva.
 
-- Transaction;
-- Settlement;
-- repositories básicos;
-- services básicos;
-- testes;
-- consolidar a configuração inicial do Streamlit.
+Critério atingido: o sistema cria e consulta contas, categorias, Transactions e
+Settlements com persistência e testes, mantendo separadas as dimensões econômica
+e de caixa.
 
-Critério de conclusão:
+---
 
-O sistema consegue criar e consultar contas, categorias, Transactions e
-Settlements com persistência e testes automatizados, mantendo separadas as
-dimensões econômica e de caixa.
+## Marco atual — Web Platform Migration
+
+Objetivo: migrar a apresentação para React/TypeScript/Vite + FastAPI sem alterar
+ou duplicar as regras financeiras existentes.
+
+Ordem aprovada:
+
+1. atualizar a documentação;
+2. preparar a application layer e estabilizar query services/DTOs;
+3. adicionar FastAPI como adaptador HTTP;
+4. criar testes de integração da API;
+5. criar a fundação React/Vite;
+6. reproduzir Contas e Categorias;
+7. reproduzir Movimentações;
+8. validar equivalência funcional e financeira;
+9. preparar frontend, backend, autenticação e banco de produção;
+10. remover Streamlit.
+
+Durante este marco ficam bloqueados:
+
+- Transfer;
+- Recurrence;
+- Installment;
+- CreditCard;
+- Debt;
+- Budget;
+- Goal;
+- Scenario;
+- Investment;
+- Aurora Insights.
+
+### Critério de equivalência
+
+React + FastAPI devem reproduzir:
+
+- listagem e cadastro de contas;
+- listagem e cadastro de categorias e subcategorias;
+- criação de movimentação pendente;
+- criação já integralmente liquidada;
+- listagem, filtros, paginação e detalhe;
+- Settlement parcial e integral;
+- cancelamento permitido;
+- bloqueio do cancelamento quando houver Settlement;
+- perspectivas de competência, vencimento e caixa;
+- estados vazios, tratamento de erros e formatação pt-BR;
+- os mesmos resultados financeiros da vertical slice Streamlit.
+
+### Critério de retirada do Streamlit
+
+Além da equivalência, são obrigatórios:
+
+- autenticação adequada em produção;
+- frontend publicado;
+- backend seguro em HTTPS;
+- testes críticos aprovados;
+- documentação atualizada.
 
 ---
 
 ## v0.2 — Financial Core
 
-Implementar:
+Somente após Web Platform Migration:
 
-- receitas;
-- despesas;
 - Transfer;
 - recorrências;
 - parcelamentos;
-- filtros;
 - edição controlada;
-- cancelamento;
 - estorno;
 - operações financeiras completas;
-- visão mensal.
+- visão mensal ampliada.
 
-Critério:
-
-Fluxo financeiro cotidiano pode ser administrado pelo Aurora.
+Critério: o fluxo financeiro cotidiano pode ser administrado pela interface web
+definitiva.
 
 ---
 
 ## v0.3 — Budget
 
-Implementar:
-
-- orçamento mensal;
-- orçamento anual;
+- orçamento mensal e anual;
 - itens por categoria;
 - orçado x comprometido x realizado;
 - Mapa Anual;
 - comparativos.
 
-Critério:
-
-Aurora consegue reproduzir conceitualmente e superar a visão da
-planilha original.
+Critério: Aurora reproduz conceitualmente e supera a visão da planilha original.
 
 ---
 
 ## v0.4 — Commitments
 
-Implementar:
-
-- cartões;
-- compras;
+- cartões e compras;
 - parcelamentos de cartão;
 - faturas;
-- dívidas;
-- parcelas de dívida;
+- dívidas e parcelas;
 - compromissos futuros.
 
-Critério:
-
-O sistema conhece as obrigações financeiras futuras já contratadas.
+Critério: Aurora conhece obrigações financeiras futuras já contratadas.
 
 ---
 
 ## v0.5 — Dashboard
 
-Implementar:
-
 - cockpit financeiro;
-- receitas;
-- despesas;
-- resultado;
+- receitas, despesas e resultado;
 - saldo;
 - orçamento;
 - próximos compromissos;
-- gráficos;
-- indicadores.
+- gráficos e indicadores com finalidade explícita.
 
-Critério:
-
-A situação financeira atual pode ser compreendida rapidamente
-pela página inicial.
+Critério: a situação financeira atual pode ser compreendida rapidamente.
 
 ---
 
 ## v0.6 — Planning
 
-Implementar:
-
 - metas;
 - projeções;
 - runway financeiro;
-- cenários;
-- eventos hipotéticos;
+- cenários e eventos hipotéticos;
 - comparação de cenários.
 
-Critério:
-
-O usuário consegue avaliar impactos financeiros futuros sem modificar
-dados reais.
+Critério: decisões futuras podem ser avaliadas sem modificar dados reais.
 
 ---
 
 ## v0.7 — Aurora Insights
 
-Implementar motor determinístico de insights.
-
-Primeiros indicadores:
+Motor determinístico para:
 
 - comprometimento;
 - concentração de despesas;
@@ -146,32 +162,21 @@ Primeiros indicadores:
 - tendência de saldo;
 - evolução patrimonial.
 
-Critério:
-
-O sistema identifica automaticamente informações relevantes a partir
-dos dados.
-
 ---
 
 ## v0.8 — Import
 
-Implementar:
-
-- importação Excel;
-- importação CSV;
+- Excel e CSV;
 - mapeamento de categorias;
-- validação;
-- preview;
+- validação e preview;
 - detecção de possíveis duplicidades;
 - importação da planilha original.
 
-Nenhuma importação deve gravar dados antes da confirmação do usuário.
+Nenhuma importação grava dados antes de confirmação.
 
 ---
 
 ## v0.9 — Patrimônio e Investimentos
-
-Implementar:
 
 - contas de investimento;
 - ativos;
@@ -188,13 +193,11 @@ Critérios:
 
 - fluxo financeiro estável;
 - orçamento;
-- cartões;
-- dívidas;
+- cartões e dívidas;
 - patrimônio;
-- planejamento;
-- insights;
+- planejamento e insights;
 - importação;
 - testes das regras críticas;
 - migrations consistentes;
 - documentação atualizada;
-- experiência de uso coerente.
+- experiência web coerente.
