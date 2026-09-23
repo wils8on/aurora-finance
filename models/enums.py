@@ -14,3 +14,20 @@ class AccountType(str, Enum):
 class CategoryType(str, Enum):
     INCOME = "INCOME"
     EXPENSE = "EXPENSE"
+
+
+class TransactionType(str, Enum):
+    INCOME = "INCOME"
+    EXPENSE = "EXPENSE"
+
+
+class TransactionStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    CANCELLED = "CANCELLED"
+
+
+class DerivedTransactionStatus(str, Enum):
+    PENDING = "PENDING"
+    PARTIAL = "PARTIAL"
+    SETTLED = "SETTLED"
+    CANCELLED = "CANCELLED"

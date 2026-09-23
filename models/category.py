@@ -24,6 +24,9 @@ class Category(TimestampMixin, Base):
 
     user: Mapped["User"] = relationship(back_populates="categories")
     subcategories: Mapped[list["Subcategory"]] = relationship(back_populates="category")
+    transactions: Mapped[list["Transaction"]] = relationship(
+        back_populates="category", passive_deletes=True
+    )
 
 
 class Subcategory(TimestampMixin, Base):
@@ -40,6 +43,9 @@ class Subcategory(TimestampMixin, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     category: Mapped[Category] = relationship(back_populates="subcategories")
+    transactions: Mapped[list["Transaction"]] = relationship(
+        back_populates="subcategory", passive_deletes=True
+    )
 
 
 from models.user import User  # noqa: E402

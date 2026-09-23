@@ -18,6 +18,9 @@ class User(TimestampMixin, Base):
 
     accounts: Mapped[list["Account"]] = relationship(back_populates="user")
     categories: Mapped[list["Category"]] = relationship(back_populates="user")
+    transactions: Mapped[list["Transaction"]] = relationship(
+        back_populates="user", passive_deletes=True
+    )
 
 
 from models.account import Account  # noqa: E402

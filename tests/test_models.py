@@ -13,7 +13,9 @@ def test_database_initialization(test_engine) -> None:
     assert set(inspect(test_engine).get_table_names()) == {
         "accounts",
         "categories",
+        "settlements",
         "subcategories",
+        "transactions",
         "users",
     }
 

@@ -29,6 +29,9 @@ class Account(TimestampMixin, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     user: Mapped["User"] = relationship(back_populates="accounts")
+    settlements: Mapped[list["Settlement"]] = relationship(
+        back_populates="account", passive_deletes=True
+    )
 
 
 from models.user import User  # noqa: E402
