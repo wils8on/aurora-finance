@@ -31,16 +31,20 @@ ou duplicar as regras financeiras existentes.
 
 Ordem aprovada:
 
-1. atualizar a documentação;
-2. preparar a application layer e estabilizar query services/DTOs;
-3. adicionar FastAPI como adaptador HTTP;
-4. criar testes de integração da API;
+1. atualizar a documentação — concluído;
+2. preparar a application layer e estabilizar query services/DTOs — concluído;
+3. adicionar FastAPI como adaptador HTTP — foundation concluída;
+4. criar testes de integração da API — primeira cobertura concluída;
 5. criar a fundação React/Vite;
 6. reproduzir Contas e Categorias;
 7. reproduzir Movimentações;
 8. validar equivalência funcional e financeira;
 9. preparar frontend, backend, autenticação e banco de produção;
 10. remover Streamlit.
+
+A foundation FastAPI atualmente expõe somente health, contas, categorias e
+subcategorias. Transaction, Settlement, summaries e autenticação real
+permanecem planejados.
 
 Durante este marco ficam bloqueados:
 

@@ -1,10 +1,10 @@
 # Aurora Finance — Contratos da API
 
-Status: planejamento arquitetural
+Status: implementação parcial
 Versão inicial planejada: `/api/v1`
 
-Este documento não descreve uma API já implementada. Ele estabelece os
-contratos conceituais para sua implementação futura.
+Health, contas, categorias e subcategorias estão implementados. Movimentações,
+liquidações, resumos, autenticação real e produção permanecem planejados.
 
 ## 1. Propósito
 
@@ -224,9 +224,9 @@ configurado. Em produção:
 
 CORS não substitui autenticação.
 
-## 13. Endpoints planejados
+## 13. Endpoints
 
-Nenhum dos endpoints abaixo está implementado nesta etapa documental.
+### Implementados
 
 ### Saúde
 
@@ -261,6 +261,8 @@ POST /api/v1/categories
 GET  /api/v1/categories/{category_id}/subcategories
 POST /api/v1/categories/{category_id}/subcategories
 ```
+
+### Planejados
 
 ### Movimentações
 

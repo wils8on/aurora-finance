@@ -20,6 +20,7 @@ from models import (
     TransactionType,
 )
 from services.clock import Clock, OPERATIONAL_TIMEZONE, SystemClock
+from services.errors import NotFoundError, OwnershipError
 
 SAO_PAULO = OPERATIONAL_TIMEZONE
 
@@ -476,5 +477,37 @@ class ReferenceQueryService:
                     if not active_only or sub.is_active
                 ),
             )
+            for item in self.session.scalars(statement)
+        )
+
+    def list_subcategories(
+        self,
+        user_id: int,
+        category_id: int,
+        *,
+        active_only: bool = False,
+    ) -> tuple[SubcategoryOption, ...]:
+        category = self.session.get(Category, category_id)
+        if category is None:
+            raise NotFoundError(
+                "Categoria não encontrada.",
+                code="CATEGORY_NOT_FOUND",
+                field="category_id",
+            )
+        if category.user_id != user_id:
+            raise OwnershipError(
+                "A categoria selecionada não pertence ao usuário.",
+                code="CATEGORY_OWNERSHIP_MISMATCH",
+                field="category_id",
+            )
+        statement = (
+            select(Subcategory)
+            .where(Subcategory.category_id == category_id)
+            .order_by(Subcategory.name)
+        )
+        if active_only:
+            statement = statement.where(Subcategory.is_active.is_(True))
+        return tuple(
+            SubcategoryOption(item.id, item.name, item.is_active)
             for item in self.session.scalars(statement)
         )

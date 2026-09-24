@@ -5,3 +5,6 @@ pandas
 plotly
 python-dotenv
 pytest
+fastapi
+uvicorn
+httpx

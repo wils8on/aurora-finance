@@ -15,6 +15,7 @@ de caixa (`Settlement`) e prioriza rastreabilidade e consistência financeira.
 - cálculos por competência, vencimento e caixa;
 - testes automatizados com pytest;
 - primeira vertical slice funcional em Streamlit para Movimentações, Contas e Categorias.
+- FastAPI foundation com health e APIs de contas, categorias e subcategorias.
 
 O Streamlit é um protótipo funcional temporário e a referência de equivalência
 para a migração web. Ele não receberá novos domínios.
@@ -37,7 +38,9 @@ SQLAlchemy
 SQLite (desenvolvimento) / PostgreSQL (produção)
 ```
 
-React/Vite, FastAPI e PostgreSQL de produção ainda não estão implementados.
+React/Vite, autenticação real, endpoints financeiros e PostgreSQL de produção
+ainda não estão implementados. A fundação FastAPI e os endpoints de cadastros
+de referência já estão disponíveis.
 GitHub Pages hospedará somente o frontend estático. O backend Python será
 hospedado separadamente e consumido por HTTPS.
 
@@ -57,10 +60,12 @@ Implementada:
 - Pandas;
 - Plotly;
 - pytest.
+- FastAPI;
+- Uvicorn;
+- HTTPX para testes de integração da API.
 
 Planejada:
 
-- FastAPI;
 - React;
 - TypeScript;
 - Vite;
@@ -104,9 +109,14 @@ O padrão utiliza SQLite local:
 
 ```dotenv
 DATABASE_URL=sqlite:///aurora_finance.db
+AURORA_ENV=development
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+AURORA_DEV_USER_EMAIL=usuario@aurora.local
 ```
 
 `.env`, bancos pessoais e exports financeiros não devem ser versionados.
+`AURORA_DEV_USER_EMAIL` deve corresponder a um usuário ativo já existente; a
+API nunca cria esse usuário automaticamente.
 
 ## Executar a aplicação atual
 
@@ -115,7 +125,30 @@ streamlit run app.py
 ```
 
 Esse comando inicia somente o protótipo Streamlit existente. Ainda não há
-servidor FastAPI nem frontend React/Vite para executar.
+frontend React/Vite.
+
+## Executar a API atual
+
+Depois de aplicar as migrations e configurar um usuário DEV existente:
+
+```powershell
+python -m uvicorn api.main:app --reload
+```
+
+Health:
+
+```text
+GET http://localhost:8000/api/v1/health
+```
+
+Endpoints implementados nesta etapa:
+
+- `GET/POST /api/v1/accounts`;
+- `GET/POST /api/v1/categories`;
+- `GET/POST /api/v1/categories/{category_id}/subcategories`.
+
+Transaction, Settlement, summaries e autenticação real ainda não são expostos
+pela API.
 
 ## Testes
 
@@ -145,7 +178,7 @@ A prioridade atual é **Web Platform Migration**:
 
 1. formalizar a documentação;
 2. preparar a camada de aplicação;
-3. adicionar FastAPI e testes da API;
+3. ampliar a API com os fluxos financeiros após validar a fundação atual;
 4. criar a fundação React/Vite;
 5. reproduzir Contas, Categorias e Movimentações;
 6. validar equivalência funcional;

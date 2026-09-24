@@ -8,7 +8,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from models import Account, AccountType, Category, CategoryType, Subcategory, User
-from services.errors import ApplicationError, ConflictError, OwnershipError, ValidationError
+from services.errors import (
+    ApplicationError,
+    ConflictError,
+    NotFoundError,
+    OwnershipError,
+    ValidationError,
+)
 
 ReferenceServiceError = ApplicationError
 
@@ -124,7 +130,13 @@ class CategoryService:
         self, *, user_id: int, category_id: int, name: str
     ) -> Subcategory:
         category = self.session.get(Category, category_id)
-        if category is None or not category.is_active:
+        if category is None:
+            raise NotFoundError(
+                "Categoria não encontrada.",
+                code="CATEGORY_NOT_FOUND",
+                field="category_id",
+            )
+        if not category.is_active:
             raise ValidationError(
                 "A categoria selecionada não está disponível.",
                 code="CATEGORY_UNAVAILABLE",
