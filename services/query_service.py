@@ -1,10 +1,9 @@
-"""Consultas de leitura otimizadas para a interface Streamlit."""
+"""Consultas e DTOs de leitura independentes da camada de apresentação."""
 
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from enum import Enum
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -20,8 +19,9 @@ from models import (
     TransactionStatus,
     TransactionType,
 )
+from services.clock import Clock, OPERATIONAL_TIMEZONE, SystemClock
 
-SAO_PAULO = ZoneInfo("America/Sao_Paulo")
+SAO_PAULO = OPERATIONAL_TIMEZONE
 
 
 class DatePerspective(str, Enum):
@@ -140,14 +140,15 @@ class CategoryOption:
 
 
 class TransactionQueryService:
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, clock: Clock | None = None) -> None:
         self.session = session
+        self.clock = clock or SystemClock()
 
     def list_transactions(self, filters: TransactionFilters) -> PaginatedTransactions:
         query, columns = self._filtered_query(filters)
         total = self.session.scalar(select(func.count()).select_from(query.subquery())) or 0
 
-        today = date.today()
+        today = self.clock.today()
         if filters.perspective == DatePerspective.CASH:
             query = query.order_by(columns.reference_date.desc(), Transaction.id.desc())
         else:
@@ -229,7 +230,7 @@ class TransactionQueryService:
         if filters.perspective == DatePerspective.DUE:
             overdue = self._sum(
                 data,
-                and_(active, data.c.due_date < date.today(), data.c.remaining > 0),
+                and_(active, data.c.due_date < self.clock.today(), data.c.remaining > 0),
                 data.c.remaining,
             )
             return TransactionSummary(receivable, payable, overdue)

@@ -1,6 +1,6 @@
 """Regras financeiras para Transaction e Settlement."""
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -16,15 +16,22 @@ from models import (
     TransactionType,
 )
 from repositories import ReferenceRepository, SettlementRepository, TransactionRepository
+from services.clock import Clock, SystemClock
+from services.errors import (
+    ApplicationError,
+    ConflictError,
+    NotFoundError,
+    OwnershipError,
+    ValidationError,
+)
 
-
-class TransactionServiceError(ValueError):
-    """Erro de validação de uma operação financeira."""
+TransactionServiceError = ApplicationError
 
 
 class TransactionService:
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, clock: Clock | None = None) -> None:
         self.session = session
+        self.clock = clock or SystemClock()
         self.transactions = TransactionRepository(session)
         self.settlements = SettlementRepository(session)
         self.references = ReferenceRepository(session)
@@ -120,11 +127,19 @@ class TransactionService:
         self._require_account(user_id, account_id)
 
         if transaction.status == TransactionStatus.CANCELLED:
-            raise TransactionServiceError("Transaction cancelada não aceita Settlement.")
+            raise ConflictError(
+                "Transaction cancelada não aceita Settlement.",
+                code="TRANSACTION_CANCELLED",
+            )
 
         settled_amount = self.settlements.total_for_transaction(transaction.id)
         if settled_amount + amount > transaction.amount:
-            raise TransactionServiceError("Settlements não podem exceder o valor nominal.")
+            raise ConflictError(
+                "Settlements não podem exceder o valor nominal.",
+                code="SETTLEMENT_EXCEEDS_REMAINING_AMOUNT",
+                field="amount",
+                details={"remaining_amount": transaction.amount - settled_amount},
+            )
 
         settlement = Settlement(
             transaction_id=transaction.id,
@@ -147,12 +162,18 @@ class TransactionService:
     ) -> Transaction:
         transaction = self._require_transaction_for_update(user_id, transaction_id)
         if transaction.status == TransactionStatus.CANCELLED:
-            raise TransactionServiceError("Transaction já está cancelada.")
+            raise ConflictError(
+                "Transaction já está cancelada.",
+                code="TRANSACTION_ALREADY_CANCELLED",
+            )
         if self.settlements.total_for_transaction(transaction.id) > Decimal("0.00"):
-            raise TransactionServiceError("Transaction com Settlement não pode ser cancelada.")
+            raise ConflictError(
+                "Transaction com Settlement não pode ser cancelada.",
+                code="TRANSACTION_HAS_SETTLEMENTS",
+            )
 
         transaction.status = TransactionStatus.CANCELLED
-        transaction.cancelled_at = cancelled_at or datetime.now(timezone.utc)
+        transaction.cancelled_at = cancelled_at or self.clock.now()
         transaction.cancellation_reason = (
             cancellation_reason.strip() if cancellation_reason else None
         )
@@ -183,22 +204,46 @@ class TransactionService:
 
     def _require_user(self, user_id: int) -> None:
         if self.references.get_user(user_id) is None:
-            raise TransactionServiceError("User não encontrado.")
+            raise NotFoundError("User não encontrado.", code="USER_NOT_FOUND")
 
     def _require_account(self, user_id: int, account_id: int) -> None:
         account = self.references.get_account(account_id)
-        if account is None or account.user_id != user_id:
-            raise TransactionServiceError("Account não pertence ao User informado.")
+        if account is None:
+            raise NotFoundError(
+                "Account não encontrada.",
+                code="ACCOUNT_NOT_FOUND",
+                field="account_id",
+            )
+        if account.user_id != user_id:
+            raise OwnershipError(
+                "Account não pertence ao User informado.",
+                code="ACCOUNT_OWNERSHIP_MISMATCH",
+                field="account_id",
+            )
 
     def _require_category(
         self, user_id: int, category_id: int, transaction_type: TransactionType
     ) -> Category:
         category = self.references.get_category(category_id)
-        if category is None or category.user_id != user_id:
-            raise TransactionServiceError("Category não pertence ao User informado.")
+        if category is None:
+            raise NotFoundError(
+                "Category não encontrada.",
+                code="CATEGORY_NOT_FOUND",
+                field="category_id",
+            )
+        if category.user_id != user_id:
+            raise OwnershipError(
+                "Category não pertence ao User informado.",
+                code="CATEGORY_OWNERSHIP_MISMATCH",
+                field="category_id",
+            )
         expected_type = CategoryType(transaction_type.value)
         if category.type != expected_type:
-            raise TransactionServiceError("Category incompatível com TransactionType.")
+            raise ValidationError(
+                "Category incompatível com TransactionType.",
+                code="CATEGORY_TYPE_MISMATCH",
+                field="category_id",
+            )
         return category
 
     def _validate_subcategory(
@@ -207,34 +252,80 @@ class TransactionService:
         if subcategory_id is None:
             return None
         subcategory = self.references.get_subcategory(subcategory_id)
-        if subcategory is None or subcategory.category_id != category.id:
-            raise TransactionServiceError("Subcategory não pertence à Category informada.")
+        if subcategory is None:
+            raise NotFoundError(
+                "Subcategory não encontrada.",
+                code="SUBCATEGORY_NOT_FOUND",
+                field="subcategory_id",
+            )
+        if subcategory.category_id != category.id:
+            raise ValidationError(
+                "Subcategory não pertence à Category informada.",
+                code="SUBCATEGORY_CATEGORY_MISMATCH",
+                field="subcategory_id",
+            )
         return subcategory
 
     def _require_transaction(self, user_id: int, transaction_id: int) -> Transaction:
         transaction = self.transactions.get(transaction_id)
-        if transaction is None or transaction.user_id != user_id:
-            raise TransactionServiceError("Transaction não pertence ao User informado.")
+        if transaction is None:
+            raise NotFoundError(
+                "Transaction não encontrada.",
+                code="TRANSACTION_NOT_FOUND",
+                field="transaction_id",
+            )
+        if transaction.user_id != user_id:
+            raise OwnershipError(
+                "Transaction não pertence ao User informado.",
+                code="TRANSACTION_OWNERSHIP_MISMATCH",
+                field="transaction_id",
+            )
         return transaction
 
     def _require_transaction_for_update(
         self, user_id: int, transaction_id: int
     ) -> Transaction:
         transaction = self.transactions.get_for_update(transaction_id)
-        if transaction is None or transaction.user_id != user_id:
-            raise TransactionServiceError("Transaction não pertence ao User informado.")
+        if transaction is None:
+            raise NotFoundError(
+                "Transaction não encontrada.",
+                code="TRANSACTION_NOT_FOUND",
+                field="transaction_id",
+            )
+        if transaction.user_id != user_id:
+            raise OwnershipError(
+                "Transaction não pertence ao User informado.",
+                code="TRANSACTION_OWNERSHIP_MISMATCH",
+                field="transaction_id",
+            )
         return transaction
 
     @staticmethod
     def _validate_description(description: str) -> None:
         if not description.strip():
-            raise TransactionServiceError("Description é obrigatória.")
+            raise ValidationError(
+                "Description é obrigatória.",
+                code="DESCRIPTION_REQUIRED",
+                field="description",
+            )
 
     @staticmethod
     def _validate_money(amount: Decimal) -> None:
         if not isinstance(amount, Decimal):
-            raise TypeError("Valores monetários devem utilizar Decimal.")
+            raise ValidationError(
+                "Valores monetários devem utilizar Decimal.",
+                code="MONEY_DECIMAL_REQUIRED",
+                field="amount",
+            )
         if not amount.is_finite() or amount <= Decimal("0.00"):
-            raise TransactionServiceError("Valor monetário deve ser positivo.")
+            raise ValidationError(
+                "Valor monetário deve ser positivo.",
+                code="MONEY_MUST_BE_POSITIVE",
+                field="amount",
+            )
         if amount.quantize(Decimal("0.01")) != amount:
-            raise TransactionServiceError("Valor monetário deve possuir no máximo 2 casas.")
+            raise ValidationError(
+                "Valor monetário deve possuir no máximo 2 casas.",
+                code="MONEY_SCALE_INVALID",
+                field="amount",
+            )

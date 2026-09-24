@@ -281,7 +281,7 @@ def test_reject_transaction_access_from_another_user(context) -> None:
 
 
 def test_money_requires_decimal(context) -> None:
-    with pytest.raises(TypeError, match="Decimal"):
+    with pytest.raises(TransactionServiceError, match="Decimal"):
         context.service.create_transaction(
             user_id=context.user.id,
             category_id=context.expense.id,
