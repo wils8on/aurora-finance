@@ -3,8 +3,9 @@
 Status: implementação parcial
 Versão inicial planejada: `/api/v1`
 
-Health, contas, categorias e subcategorias estão implementados. Movimentações,
-liquidações, resumos, autenticação real e produção permanecem planejados.
+Health, contas, categorias, subcategorias, movimentações, liquidações,
+cancelamento e resumos estão implementados. Autenticação real e produção
+permanecem planejados.
 
 ## 1. Propósito
 
@@ -136,7 +137,7 @@ Formato conceitual:
 }
 ```
 
-Parâmetros planejados para movimentações:
+Parâmetros implementados para movimentações:
 
 - `perspective`;
 - `start_date`;
@@ -150,7 +151,8 @@ Parâmetros planejados para movimentações:
 - `page`;
 - `page_size`.
 
-A API deverá impor limites de paginação.
+`start_date` e `end_date` são obrigatórios, o intervalo deve ser crescente e
+`page_size` aceita de 1 a 100 itens. A paginação padrão é 25 itens.
 
 ## 10. Erros
 
@@ -262,8 +264,6 @@ GET  /api/v1/categories/{category_id}/subcategories
 POST /api/v1/categories/{category_id}/subcategories
 ```
 
-### Planejados
-
 ### Movimentações
 
 ```text
@@ -301,6 +301,11 @@ Settlement:
 }
 ```
 
+Criação histórica integral combina os dois payloads em
+`POST /api/v1/transactions/settled`, usando `transaction_notes` no nível da
+Transaction e o objeto `settlement`. Seu valor deve ser igual ao valor nominal;
+a operação inteira sofre rollback se qualquer etapa falhar.
+
 Cancelamento:
 
 ```json
@@ -318,6 +323,20 @@ preservam as transições e validações do domínio.
 GET /api/v1/transaction-summaries
 ```
 
-Usará filtros compatíveis com a listagem, incluindo `perspective=COMPETENCE`,
-`DUE` ou `CASH`. As agregações existentes nos query services devem ser
-reutilizadas, não reimplementadas nas routes.
+Usa os mesmos filtros da listagem, incluindo `perspective=COMPETENCE`, `DUE` ou
+`CASH`. Os campos monetários de resposta são strings. `primary_1`, `primary_2`
+e `primary_3` significam, respectivamente:
+
+- competência: receitas, despesas e resultado nominal;
+- vencimento: a receber, a pagar e vencido;
+- caixa: recebido, pago e fluxo líquido.
+
+Em competência, `receivable` e `payable` também informam os saldos remanescentes.
+As agregações são produzidas pelos query services existentes, sem regra
+financeira duplicada nas routes.
+
+### Limitação conhecida do SQLite
+
+SQLite não preserva metadados de timezone em `DateTime`. A API normaliza eventos
+recebidos para UTC antes da persistência e restitui offset UTC na resposta. A
+política permanece compatível com a futura migração para PostgreSQL.

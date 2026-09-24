@@ -52,7 +52,9 @@ class TransactionListItem:
     id: int
     description: str
     transaction_type: TransactionType
+    category_id: int
     category_name: str
+    subcategory_id: int | None
     subcategory_name: str | None
     competence_date: date
     due_date: date | None
@@ -66,6 +68,8 @@ class TransactionListItem:
 
 @dataclass(frozen=True)
 class SettlementHistoryItem:
+    id: int
+    account_id: int
     account_name: str
     amount: Decimal
     settled_at: datetime
@@ -79,7 +83,9 @@ class TransactionDetail:
     transaction_type: TransactionType
     persisted_status: TransactionStatus
     derived_status: DerivedTransactionStatus
+    category_id: int
     category_name: str
+    subcategory_id: int | None
     subcategory_name: str | None
     amount: Decimal
     settled_amount: Decimal
@@ -265,6 +271,8 @@ class TransactionQueryService:
         state = self._derive_status(transaction.status, settled, transaction.amount)
         history = tuple(
             SettlementHistoryItem(
+                id=item.id,
+                account_id=item.account_id,
                 account_name=item.account.name,
                 amount=item.amount,
                 settled_at=item.settled_at,
@@ -278,7 +286,9 @@ class TransactionQueryService:
             transaction_type=transaction.transaction_type,
             persisted_status=transaction.status,
             derived_status=state,
+            category_id=transaction.category_id,
             category_name=transaction.category.name,
+            subcategory_id=transaction.subcategory_id,
             subcategory_name=transaction.subcategory.name if transaction.subcategory else None,
             amount=transaction.amount,
             settled_amount=settled,
@@ -336,7 +346,9 @@ class TransactionQueryService:
                 Transaction.competence_date.label("competence_date"),
                 Transaction.due_date.label("due_date"),
                 Category.name.label("category_name"),
+                Transaction.category_id.label("category_id"),
                 Subcategory.name.label("subcategory_name"),
+                Transaction.subcategory_id.label("subcategory_id"),
                 settled.label("settled_amount"),
                 remaining.label("remaining"),
                 period_settled.label("period_settled"),
@@ -396,7 +408,9 @@ class TransactionQueryService:
             id=row.id,
             description=row.description,
             transaction_type=row.transaction_type,
+            category_id=row.category_id,
             category_name=row.category_name,
+            subcategory_id=row.subcategory_id,
             subcategory_name=row.subcategory_name,
             competence_date=row.competence_date,
             due_date=row.due_date,

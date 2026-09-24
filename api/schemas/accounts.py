@@ -11,6 +11,18 @@ from models import AccountType
 CANONICAL_MONEY = re.compile(r"^-?(?:0|[1-9]\d*)(?:\.\d{1,2})?$")
 
 
+def parse_canonical_money(value: object) -> Decimal:
+    if not isinstance(value, str) or not CANONICAL_MONEY.fullmatch(value):
+        raise ValueError("Use string decimal canônica, por exemplo: 1234.56.")
+    try:
+        amount = Decimal(value)
+    except InvalidOperation as error:
+        raise ValueError("Valor monetário inválido.") from error
+    if not amount.is_finite():
+        raise ValueError("Valor monetário inválido.")
+    return amount
+
+
 class AccountCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -23,15 +35,7 @@ class AccountCreate(BaseModel):
     @field_validator("initial_balance", mode="before")
     @classmethod
     def validate_money_string(cls, value: object) -> Decimal:
-        if not isinstance(value, str) or not CANONICAL_MONEY.fullmatch(value):
-            raise ValueError("Use string decimal canônica, por exemplo: 1234.56.")
-        try:
-            amount = Decimal(value)
-        except InvalidOperation as error:
-            raise ValueError("Valor monetário inválido.") from error
-        if not amount.is_finite():
-            raise ValueError("Valor monetário inválido.")
-        return amount
+        return parse_canonical_money(value)
 
 
 class AccountResponse(BaseModel):

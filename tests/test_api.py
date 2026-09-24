@@ -104,7 +104,7 @@ def test_health_returns_ok(api_context) -> None:
     assert response.headers["X-Request-ID"]
 
 
-def test_openapi_exposes_only_the_initial_scope(api_context) -> None:
+def test_openapi_exposes_the_current_api_scope(api_context) -> None:
     client, _app, _ids, _load_user = api_context
 
     response = client.get("/openapi.json")
@@ -115,6 +115,12 @@ def test_openapi_exposes_only_the_initial_scope(api_context) -> None:
         "/api/v1/accounts",
         "/api/v1/categories",
         "/api/v1/categories/{category_id}/subcategories",
+        "/api/v1/transactions",
+        "/api/v1/transactions/settled",
+        "/api/v1/transactions/{transaction_id}",
+        "/api/v1/transactions/{transaction_id}/settlements",
+        "/api/v1/transactions/{transaction_id}/cancellation",
+        "/api/v1/transaction-summaries",
     }
 
 

@@ -33,18 +33,18 @@ Ordem aprovada:
 
 1. atualizar a documentação — concluído;
 2. preparar a application layer e estabilizar query services/DTOs — concluído;
-3. adicionar FastAPI como adaptador HTTP — foundation concluída;
-4. criar testes de integração da API — primeira cobertura concluída;
-5. criar a fundação React/Vite;
+3. adicionar FastAPI como adaptador HTTP — fluxos da vertical slice concluídos;
+4. criar testes de integração da API — cobertura financeira concluída;
+5. criar a fundação React/Vite — próximo passo;
 6. reproduzir Contas e Categorias;
 7. reproduzir Movimentações;
 8. validar equivalência funcional e financeira;
 9. preparar frontend, backend, autenticação e banco de produção;
 10. remover Streamlit.
 
-A foundation FastAPI atualmente expõe somente health, contas, categorias e
-subcategorias. Transaction, Settlement, summaries e autenticação real
-permanecem planejados.
+A API atualmente expõe health, contas, categorias, subcategorias, Transaction,
+Settlement, cancelamento e resumos por competência, vencimento e caixa.
+Autenticação real permanece planejada e é obrigatória antes de publicação.
 
 Durante este marco ficam bloqueados:
 

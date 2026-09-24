@@ -7,7 +7,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import ApiSettings, Environment, load_settings
 from api.errors import register_error_handlers
-from api.routes import accounts_router, categories_router, health_router
+from api.routes import (
+    accounts_router,
+    categories_router,
+    health_router,
+    summaries_router,
+    transactions_router,
+)
 
 
 def create_app(settings: ApiSettings | None = None) -> FastAPI:
@@ -44,6 +50,8 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     application.include_router(health_router, prefix=configured.api_prefix)
     application.include_router(accounts_router, prefix=configured.api_prefix)
     application.include_router(categories_router, prefix=configured.api_prefix)
+    application.include_router(transactions_router, prefix=configured.api_prefix)
+    application.include_router(summaries_router, prefix=configured.api_prefix)
     return application
 
 

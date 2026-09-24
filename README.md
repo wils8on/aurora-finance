@@ -15,7 +15,8 @@ de caixa (`Settlement`) e prioriza rastreabilidade e consistência financeira.
 - cálculos por competência, vencimento e caixa;
 - testes automatizados com pytest;
 - primeira vertical slice funcional em Streamlit para Movimentações, Contas e Categorias.
-- FastAPI foundation com health e APIs de contas, categorias e subcategorias.
+- FastAPI com health, cadastros de referência e fluxos HTTP de Transaction,
+  Settlement, cancelamento e resumos financeiros.
 
 O Streamlit é um protótipo funcional temporário e a referência de equivalência
 para a migração web. Ele não receberá novos domínios.
@@ -38,9 +39,9 @@ SQLAlchemy
 SQLite (desenvolvimento) / PostgreSQL (produção)
 ```
 
-React/Vite, autenticação real, endpoints financeiros e PostgreSQL de produção
-ainda não estão implementados. A fundação FastAPI e os endpoints de cadastros
-de referência já estão disponíveis.
+React/Vite, autenticação real e PostgreSQL de produção ainda não estão
+implementados. A API já expõe os fluxos financeiros necessários para a futura
+equivalência da vertical slice.
 GitHub Pages hospedará somente o frontend estático. O backend Python será
 hospedado separadamente e consumido por HTTPS.
 
@@ -146,9 +147,16 @@ Endpoints implementados nesta etapa:
 - `GET/POST /api/v1/accounts`;
 - `GET/POST /api/v1/categories`;
 - `GET/POST /api/v1/categories/{category_id}/subcategories`.
+- `GET/POST /api/v1/transactions`;
+- `GET /api/v1/transactions/{transaction_id}`;
+- `POST /api/v1/transactions/settled`;
+- `POST /api/v1/transactions/{transaction_id}/settlements`;
+- `POST /api/v1/transactions/{transaction_id}/cancellation`;
+- `GET /api/v1/transaction-summaries`.
 
-Transaction, Settlement, summaries e autenticação real ainda não são expostos
-pela API.
+Listagens e resumos exigem `start_date` e `end_date` em ISO 8601 e aceitam as
+perspectivas `COMPETENCE`, `DUE` e `CASH`. Autenticação real ainda não existe;
+portanto, a API financeira não deve ser publicada na internet.
 
 ## Testes
 
@@ -178,12 +186,11 @@ A prioridade atual é **Web Platform Migration**:
 
 1. formalizar a documentação;
 2. preparar a camada de aplicação;
-3. ampliar a API com os fluxos financeiros após validar a fundação atual;
-4. criar a fundação React/Vite;
-5. reproduzir Contas, Categorias e Movimentações;
-6. validar equivalência funcional;
-7. preparar os ambientes de produção;
-8. remover Streamlit somente após todos os critérios serem atendidos.
+3. criar a fundação React/Vite;
+4. reproduzir Contas, Categorias e Movimentações;
+5. validar equivalência funcional;
+6. preparar os ambientes de produção;
+7. remover Streamlit somente após todos os critérios serem atendidos.
 
 Novos domínios financeiros permanecem bloqueados durante esse marco.
 
@@ -197,4 +204,4 @@ Novos domínios financeiros permanecem bloqueados durante esse marco.
 - O cliente nunca deve escolher `user_id`.
 - Stack traces e payloads financeiros completos não devem ser expostos.
 
-Consulte `docs/API_CONTRACTS.md` para os contratos planejados da API.
+Consulte `docs/API_CONTRACTS.md` para os contratos atuais da API.
