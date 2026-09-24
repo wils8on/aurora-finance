@@ -35,8 +35,8 @@ Ordem aprovada:
 2. preparar a application layer e estabilizar query services/DTOs — concluído;
 3. adicionar FastAPI como adaptador HTTP — fluxos da vertical slice concluídos;
 4. criar testes de integração da API — cobertura financeira concluída;
-5. criar a fundação React/Vite — próximo passo;
-6. reproduzir Contas e Categorias;
+5. criar a fundação React/Vite — concluído;
+6. reproduzir Contas e Categorias — próximo passo;
 7. reproduzir Movimentações;
 8. validar equivalência funcional e financeira;
 9. preparar frontend, backend, autenticação e banco de produção;
@@ -45,6 +45,12 @@ Ordem aprovada:
 A API atualmente expõe health, contas, categorias, subcategorias, Transaction,
 Settlement, cancelamento e resumos por competência, vencimento e caixa.
 Autenticação real permanece planejada e é obrigatória antes de publicação.
+
+A foundation web implementa React/TypeScript/Vite, `HashRouter`, shell
+responsivo, navegação lateral, design tokens, componentes mínimos, cliente HTTP
+estruturado e integração exclusiva com `GET /health`. Contas, Categorias e
+Movimentações possuem apenas placeholders, sem consultas financeiras. O deploy
+no GitHub Pages ainda não foi realizado.
 
 Durante este marco ficam bloqueados:
 

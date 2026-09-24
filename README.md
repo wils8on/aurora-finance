@@ -17,6 +17,8 @@ de caixa (`Settlement`) e prioriza rastreabilidade e consistência financeira.
 - primeira vertical slice funcional em Streamlit para Movimentações, Contas e Categorias.
 - FastAPI com health, cadastros de referência e fluxos HTTP de Transaction,
   Settlement, cancelamento e resumos financeiros.
+- foundation React, TypeScript e Vite com HashRouter, layout responsivo,
+  design tokens, cliente HTTP e integração com o health da API.
 
 O Streamlit é um protótipo funcional temporário e a referência de equivalência
 para a migração web. Ele não receberá novos domínios.
@@ -39,9 +41,9 @@ SQLAlchemy
 SQLite (desenvolvimento) / PostgreSQL (produção)
 ```
 
-React/Vite, autenticação real e PostgreSQL de produção ainda não estão
-implementados. A API já expõe os fluxos financeiros necessários para a futura
-equivalência da vertical slice.
+As telas web funcionais, autenticação real e PostgreSQL de produção ainda não
+estão implementados. A API já expõe os fluxos financeiros necessários para a
+futura equivalência da vertical slice.
 GitHub Pages hospedará somente o frontend estático. O backend Python será
 hospedado separadamente e consumido por HTTPS.
 
@@ -67,11 +69,16 @@ Implementada:
 
 Planejada:
 
+- PostgreSQL em produção;
+- GitHub Pages para o frontend.
+
+Frontend implementado:
+
 - React;
 - TypeScript;
 - Vite;
-- PostgreSQL em produção;
-- GitHub Pages para o frontend.
+- React Router com `HashRouter`;
+- CSS próprio com design tokens.
 
 ## Estrutura atual relevante
 
@@ -86,6 +93,7 @@ components/      componentes do protótipo
 utils/           utilitários
 docs/            documentação técnica e funcional
 app.py           entrada atual do Streamlit
+frontend/        aplicação web React/TypeScript/Vite
 ```
 
 A estrutura futura está descrita em `docs/ARCHITECTURE.md`.
@@ -93,9 +101,9 @@ A estrutura futura está descrita em `docs/ARCHITECTURE.md`.
 ## Requisitos atuais
 
 - Python 3.12 ou versão compatível;
-- `pip`.
-
-Node.js não é requisito ainda porque o frontend React/Vite não foi criado.
+- `pip`;
+- Node.js 24 ou versão compatível;
+- npm.
 
 ## Configuração local atual
 
@@ -126,7 +134,31 @@ streamlit run app.py
 ```
 
 Esse comando inicia somente o protótipo Streamlit existente. Ainda não há
-frontend React/Vite.
+substituição funcional pelo frontend React/Vite.
+
+## Executar o frontend
+
+```powershell
+cd frontend
+Copy-Item .env.example .env
+npm install
+npm run dev
+```
+
+A aplicação estará disponível em `http://localhost:5173/aurora-finance/` e usa
+rotas hash. `VITE_API_BASE_URL` é uma configuração pública e não deve conter
+segredos. Nesta foundation, somente `GET /health` é consumido.
+
+Validações do frontend:
+
+```powershell
+npm run typecheck
+npm run build
+```
+
+O diretório `dist/` é gerado localmente e não é versionado. A configuração é
+compatível com o project site `/aurora-finance/`, mas nenhum deploy ou workflow
+de GitHub Pages foi criado.
 
 ## Executar a API atual
 
@@ -186,11 +218,12 @@ A prioridade atual é **Web Platform Migration**:
 
 1. formalizar a documentação;
 2. preparar a camada de aplicação;
-3. criar a fundação React/Vite;
-4. reproduzir Contas, Categorias e Movimentações;
-5. validar equivalência funcional;
-6. preparar os ambientes de produção;
-7. remover Streamlit somente após todos os critérios serem atendidos.
+3. fundação React/Vite — concluída;
+4. reproduzir Contas e Categorias;
+5. reproduzir Movimentações;
+6. validar equivalência funcional;
+7. preparar os ambientes de produção;
+8. remover Streamlit somente após todos os critérios serem atendidos.
 
 Novos domínios financeiros permanecem bloqueados durante esse marco.
 
