@@ -99,3 +99,18 @@ export async function apiRequest<T>(
     window.clearTimeout(timeout)
   }
 }
+
+export function apiGet<T>(path: string): Promise<T> {
+  return apiRequest<T>(path)
+}
+
+export function apiPost<TResponse, TPayload>(
+  path: string,
+  payload: TPayload,
+): Promise<TResponse> {
+  return apiRequest<TResponse>(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}

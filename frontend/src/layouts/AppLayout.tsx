@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Menu } from 'lucide-react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { AppSidebar } from '../components/navigation/AppSidebar'
+import { IconButton } from '../components/base/IconButton'
 
 export function AppLayout() {
   const [isNavigationOpen, setNavigationOpen] = useState(false)
@@ -29,16 +31,14 @@ export function AppLayout() {
       )}
       <div className="app-workspace">
         <header className="mobile-header">
-          <button
+          <IconButton
             className="menu-button"
-            type="button"
-            aria-label="Abrir menu"
+            label="Abrir menu"
+            icon={<Menu size={21} />}
             aria-expanded={isNavigationOpen}
             aria-controls="app-sidebar"
             onClick={() => setNavigationOpen(true)}
-          >
-            <span aria-hidden="true">☰</span>
-          </button>
+          />
           <span className="mobile-brand">Aurora Finance</span>
         </header>
         <main id="main-content" className="main-content" tabIndex={-1}>

@@ -1,4 +1,17 @@
 import { NavLink } from 'react-router-dom'
+import {
+  BarChart3,
+  CircleDollarSign,
+  Goal,
+  House,
+  Landmark,
+  LayoutGrid,
+  ListTree,
+  ReceiptText,
+  Sparkles,
+  WalletCards,
+} from 'lucide-react'
+import { useHealth } from '../../hooks/useHealth'
 
 interface AppSidebarProps {
   isOpen: boolean
@@ -6,13 +19,21 @@ interface AppSidebarProps {
 }
 
 const navigation = [
-  { to: '/', label: 'Início', end: true },
-  { to: '/movimentacoes', label: 'Movimentações' },
-  { to: '/contas', label: 'Contas' },
-  { to: '/categorias', label: 'Categorias' },
+  { to: '/', label: 'Início', end: true, icon: House },
+  { to: '/movimentacoes', label: 'Movimentações', icon: ReceiptText },
+  { to: '/contas', label: 'Contas', icon: WalletCards },
+  { to: '/categorias', label: 'Categorias', icon: ListTree },
+]
+
+const upcoming = [
+  { label: 'Orçamento', icon: LayoutGrid },
+  { label: 'Metas', icon: Goal },
+  { label: 'Investimentos', icon: Landmark },
+  { label: 'Relatórios', icon: BarChart3 },
 ]
 
 export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
+  const { state: health, retry } = useHealth()
   return (
     <aside
       id="app-sidebar"
@@ -20,14 +41,14 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
       aria-label="Navegação principal"
     >
       <div className="sidebar-brand">
-        <span className="brand-mark" aria-hidden="true">A</span>
+        <span className="brand-mark" aria-hidden="true"><Sparkles size={19} /></span>
         <div>
           <strong>Aurora</strong>
           <span>Finance</span>
         </div>
       </div>
       <nav className="sidebar-navigation">
-        <span className="navigation-label">Navegação</span>
+        <span className="navigation-label">Navegação principal</span>
         <ul>
           {navigation.map((item) => (
             <li key={item.to}>
@@ -39,14 +60,33 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
                   `navigation-link${isActive ? ' navigation-link--active' : ''}`
                 }
               >
-                <span className="navigation-dot" aria-hidden="true" />
+                <item.icon size={18} strokeWidth={1.8} aria-hidden="true" />
                 {item.label}
               </NavLink>
             </li>
           ))}
         </ul>
       </nav>
-      <p className="sidebar-note">Foundation web · v0.1</p>
+      <div className="sidebar-upcoming" aria-label="Funcionalidades em breve">
+        <span className="navigation-label">Em breve</span>
+        <ul>
+          {upcoming.map((item) => (
+            <li className="navigation-disabled" aria-disabled="true" key={item.label}>
+              <item.icon size={18} strokeWidth={1.8} aria-hidden="true" />
+              <span>{item.label}</span>
+              <small>Em breve</small>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className={`sidebar-health sidebar-health--${health.kind}`} aria-live="polite">
+        <CircleDollarSign size={18} aria-hidden="true" />
+        <div>
+          <strong>{health.kind === 'available' ? 'Sistema conectado' : health.kind === 'loading' ? 'Verificando sistema' : 'Sistema indisponível'}</strong>
+          <span>{health.kind === 'available' ? 'API disponível' : health.kind === 'loading' ? 'Aguarde um instante' : 'Não foi possível conectar'}</span>
+        </div>
+        {health.kind === 'error' && <button type="button" onClick={retry}>Tentar novamente</button>}
+      </div>
     </aside>
   )
 }
