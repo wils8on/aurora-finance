@@ -9,6 +9,7 @@ de caixa (`Settlement`) e prioriza rastreabilidade e consistência financeira.
 - Python 3.12;
 - SQLAlchemy e Alembic;
 - SQLite para desenvolvimento local;
+- PostgreSQL validado como banco compatível para produção;
 - User, Account, Category e Subcategory;
 - Transaction e Settlement;
 - services, repositories e query services;
@@ -51,9 +52,10 @@ SQLite (desenvolvimento) / PostgreSQL (produção)
 
 A equivalência funcional e financeira entre Streamlit e React + FastAPI foi
 validada, incluindo competência, vencimento, caixa e o dia operacional
-`America/Sao_Paulo`. A autenticação real está implementada; o PostgreSQL e o
-deploy de produção ainda não estão implementados. React e FastAPI cobrem os fluxos da vertical slice de
-Contas, Categorias e Movimentações.
+`America/Sao_Paulo`. A autenticação real está implementada e o backend foi
+validado contra PostgreSQL real; o deploy de produção ainda não foi realizado.
+React e FastAPI cobrem os fluxos da vertical slice de Contas, Categorias e
+Movimentações.
 GitHub Pages hospedará somente o frontend estático. O backend Python será
 hospedado separadamente e consumido por HTTPS.
 
@@ -77,6 +79,7 @@ Implementada:
 - Uvicorn;
 - HTTPX para testes de integração da API.
 - Argon2-cffi para password hashing Argon2id.
+- Psycopg 3, em modo síncrono, para PostgreSQL.
 
 Planejada:
 
@@ -237,6 +240,20 @@ python -m pytest
 
 Os testes utilizam bancos isolados e não devem acessar o banco pessoal.
 
+A validação PostgreSQL é opt-in para manter a suíte cotidiana leve. Ela exige
+uma instância PostgreSQL real e uma URL administrativa destinada somente a
+testes. A suíte cria um banco com nome aleatório, aplica todas as migrations,
+executa os testes e descarta o banco ao terminar:
+
+```powershell
+$env:AURORA_TEST_POSTGRES_URL="postgresql+psycopg://USUARIO:SENHA@HOST:5432/postgres"
+python -m pytest -m postgresql tests/postgresql
+Remove-Item Env:AURORA_TEST_POSTGRES_URL
+```
+
+Nunca aponte essa variável para um banco pessoal ou de produção. O valor não
+deve ser salvo no `.env` versionado nem exposto ao frontend.
+
 ## Alembic
 
 ```powershell
@@ -262,8 +279,9 @@ A prioridade atual é **Web Platform Migration**:
 5. reproduzir Movimentações — concluído;
 6. validar equivalência funcional e financeira — concluído;
 7. autenticação browser-first — concluída;
-8. preparar os ambientes de produção — próximo passo;
-9. decidir explicitamente pela aposentadoria do Streamlit somente após todos os
+8. validar compatibilidade PostgreSQL — concluído;
+9. preparar os ambientes de produção — próximo passo;
+10. decidir explicitamente pela aposentadoria do Streamlit somente após todos os
    critérios de retirada serem atendidos.
 
 Novos domínios financeiros permanecem bloqueados durante esse marco.

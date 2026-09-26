@@ -40,14 +40,18 @@ Ordem aprovada:
 7. reproduzir Movimentações — concluído;
 8. validar equivalência funcional e financeira — concluído;
 9. implementar autenticação, sessão, CSRF e proteção das APIs — concluído;
-10. preparar frontend, backend e banco de produção — próximo passo;
-11. remover Streamlit.
+10. validar backend e suíte financeira em PostgreSQL real — concluído;
+11. preparar frontend, backend e banco de produção — próximo passo;
+12. remover Streamlit.
 
 A API atualmente expõe health, contas, categorias, subcategorias, Transaction,
 Settlement, cancelamento e resumos por competência, vencimento e caixa.
 Autenticação real está implementada com Argon2id, sessão opaca revogável,
-cookie HttpOnly, proteção CSRF e ownership derivado da sessão. O deploy e a
-validação operacional de produção permanecem pendentes.
+cookie HttpOnly, proteção CSRF e ownership derivado da sessão. Todas as
+migrations, autenticação, ownership e o oráculo financeiro foram validados em
+PostgreSQL 17.11 real, inclusive `timestamptz` no limite operacional de
+`America/Sao_Paulo` e múltiplos Settlements. O deploy e a validação operacional
+no provedor de produção permanecem pendentes.
 
 A auditoria de paridade validou os mesmos resultados financeiros na vertical
 slice Streamlit e em React + FastAPI. A perspectiva Caixa utiliza o dia

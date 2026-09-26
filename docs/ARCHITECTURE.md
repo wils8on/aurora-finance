@@ -262,8 +262,40 @@ Regras adicionais:
 
 ## 14. SQLite para PostgreSQL
 
-A evolução preservará SQLAlchemy, Alembic, `Numeric`, `Decimal`, constraints
-e migrations. Antes da produção deverão ser validados:
+A compatibilidade do backend foi validada em PostgreSQL 17.11 real e descartável,
+com Psycopg 3 síncrono. A execução cobriu todas as migrations históricas em
+banco vazio, `alembic check`, schema, autenticação, ownership, Transaction,
+Settlement e summaries. SQLite continua sendo o padrão leve de desenvolvimento.
+
+A suíte PostgreSQL é opt-in, marcada com `postgresql`, cria um banco isolado de
+nome aleatório e o remove ao final. Ela não usa banco pessoal nem banco futuro
+de produção. A aplicação mantém a configuração existente por `DATABASE_URL`;
+argumentos específicos de SQLite não são aplicados ao engine PostgreSQL, que
+utiliza o pool síncrono padrão do SQLAlchemy.
+
+Matriz de equivalência validada:
+
+| Capacidade | SQLite | PostgreSQL | Resultado |
+|---|---|---|---|
+| Migrations | validado | validado | EQUIVALENTE |
+| Money (`Numeric`/`Decimal`) | validado | validado | EQUIVALENTE |
+| Competência | validado | validado | EQUIVALENTE |
+| Vencimento | validado | validado | EQUIVALENTE |
+| Caixa | validado | validado | EQUIVALENTE |
+| Timezone operacional | validado | validado | EQUIVALENTE |
+| Settlement parcial | validado | validado | EQUIVALENTE |
+| Múltiplos Settlements | validado | validado | EQUIVALENTE |
+| Summaries | validado | validado | EQUIVALENTE |
+| Autenticação | validado | validado | EQUIVALENTE |
+| Sessões | validado | validado | EQUIVALENTE |
+| Ownership | validado | validado | EQUIVALENTE |
+
+O caso crítico `2026-09-23T02:30:00Z` foi persistido como `timestamptz` e
+classificado no dia operacional `2026-09-22` em `America/Sao_Paulo`. A
+Transaction de `90.00` com Settlements de `30.00` e `60.00` preservou total
+histórico `90.00`, valores por período e uma única ocorrência por listagem.
+
+Continuam relevantes antes da operação pública:
 
 - timezone;
 - enums;
@@ -272,9 +304,12 @@ e migrations. Antes da produção deverão ser validados:
 - ordenação de `NULL`;
 - pesquisa case-insensitive;
 - funções SQL usadas pelos query services;
-- execução integral das migrations em PostgreSQL limpo.
+- testes de concorrência real sob a topologia de hospedagem escolhida.
 
-Nenhum provedor PostgreSQL está escolhido.
+Nenhum provedor PostgreSQL está escolhido e nenhum ambiente de produção foi
+configurado. Os índices atuais atendem aos fluxos pessoais esperados; a consulta
+de Caixa deve ser reavaliada com `EXPLAIN` somente quando houver volume real que
+justifique um índice adicional por `settled_at`.
 
 ## 15. Streamlit temporário
 
