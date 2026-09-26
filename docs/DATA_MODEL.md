@@ -18,10 +18,31 @@ name
 email
 currency
 is_active
+password_hash (nullable durante a transição de usuários já existentes)
 created_at
 updated_at
 
-Inicialmente haverá apenas um usuário operacional.
+`password_hash` contém somente hash Argon2id, nunca senha reversível. Usuários
+sem hash não podem autenticar até provisionamento administrativo explícito.
+
+## 1.1 AuthSession
+
+Sessão browser opaca, revogável e persistida no servidor.
+
+Campos:
+
+id
+user_id
+token_hash
+csrf_token
+expires_at
+revoked_at
+created_at
+updated_at
+
+O token bruto existe somente no cookie HttpOnly. O banco armazena seu SHA-256
+para lookup e revogação. `csrf_token` é um valor aleatório separado, entregue
+ao frontend autenticado e exigido em operações inseguras.
 
 ---
 

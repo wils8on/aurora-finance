@@ -9,6 +9,7 @@ from api.config import ApiSettings, Environment, load_settings
 from api.errors import register_error_handlers
 from api.routes import (
     accounts_router,
+    auth_router,
     categories_router,
     health_router,
     summaries_router,
@@ -36,7 +37,7 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
         allow_origins=list(configured.cors_origins),
         allow_credentials=True,
         allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+        allow_headers=["Content-Type", "X-CSRF-Token", "X-Request-ID"],
     )
 
     @application.middleware("http")
@@ -48,6 +49,7 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
 
     register_error_handlers(application)
     application.include_router(health_router, prefix=configured.api_prefix)
+    application.include_router(auth_router, prefix=configured.api_prefix)
     application.include_router(accounts_router, prefix=configured.api_prefix)
     application.include_router(categories_router, prefix=configured.api_prefix)
     application.include_router(transactions_router, prefix=configured.api_prefix)

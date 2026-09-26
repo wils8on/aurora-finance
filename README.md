@@ -23,6 +23,8 @@ de caixa (`Settlement`) e prioriza rastreabilidade e consistência financeira.
 - experiência web de Movimentações com perspectivas, período, filtros,
   paginação, resumos, criação, detalhe, liquidações e cancelamento;
 - testes do frontend com Vitest e React Testing Library.
+- autenticação própria com Argon2id, sessões opacas server-side, cookie HttpOnly
+  e proteção CSRF por token e validação de origem.
 
 O Streamlit é um protótipo funcional temporário e a referência de equivalência
 para a migração web. A equivalência funcional e financeira da vertical slice
@@ -49,8 +51,8 @@ SQLite (desenvolvimento) / PostgreSQL (produção)
 
 A equivalência funcional e financeira entre Streamlit e React + FastAPI foi
 validada, incluindo competência, vencimento, caixa e o dia operacional
-`America/Sao_Paulo`. A autenticação real e o PostgreSQL de produção ainda não
-estão implementados. React e FastAPI cobrem os fluxos da vertical slice de
+`America/Sao_Paulo`. A autenticação real está implementada; o PostgreSQL e o
+deploy de produção ainda não estão implementados. React e FastAPI cobrem os fluxos da vertical slice de
 Contas, Categorias e Movimentações.
 GitHub Pages hospedará somente o frontend estático. O backend Python será
 hospedado separadamente e consumido por HTTPS.
@@ -74,6 +76,7 @@ Implementada:
 - FastAPI;
 - Uvicorn;
 - HTTPX para testes de integração da API.
+- Argon2-cffi para password hashing Argon2id.
 
 Planejada:
 
@@ -130,12 +133,16 @@ O padrão utiliza SQLite local:
 DATABASE_URL=sqlite:///aurora_finance.db
 AURORA_ENV=development
 CORS_ALLOWED_ORIGINS=http://localhost:5173
-AURORA_DEV_USER_EMAIL=usuario@aurora.local
+AUTH_SESSION_HOURS=12
+AUTH_COOKIE_NAME=aurora_session
+AUTH_COOKIE_SECURE=false
 ```
 
 `.env`, bancos pessoais e exports financeiros não devem ser versionados.
-`AURORA_DEV_USER_EMAIL` deve corresponder a um usuário ativo já existente; a
-API nunca cria esse usuário automaticamente.
+Em produção, `AURORA_ENV=production`, `AUTH_COOKIE_SECURE=true` e uma allowlist
+HTTPS explícita em `CORS_ALLOWED_ORIGINS` são obrigatórios. O backend falha ao
+iniciar se essas garantias não estiverem presentes. Variáveis `VITE_*` são
+públicas e nunca devem receber credenciais ou segredos.
 
 ## Executar a aplicação atual
 
@@ -174,7 +181,16 @@ de GitHub Pages foi criado.
 
 ## Executar a API atual
 
-Depois de aplicar as migrations e configurar um usuário DEV existente:
+Depois de aplicar as migrations, provisione explicitamente o primeiro usuário:
+
+```powershell
+python -m alembic upgrade head
+python -m scripts.provision_user --name "Seu nome" --email voce@example.com
+```
+
+A senha é solicitada de forma interativa, deve ter de 12 a 256 caracteres e é
+persistida somente como hash Argon2id. Não existe endpoint público de cadastro.
+Então inicie a API:
 
 ```powershell
 python -m uvicorn api.main:app --reload
@@ -188,6 +204,9 @@ GET http://localhost:8000/api/v1/health
 
 Endpoints implementados nesta etapa:
 
+- `POST /api/v1/auth/login`;
+- `GET /api/v1/auth/me`;
+- `POST /api/v1/auth/logout`;
 - `GET/POST /api/v1/accounts`;
 - `GET/POST /api/v1/categories`;
 - `GET/POST /api/v1/categories/{category_id}/subcategories`.
@@ -199,8 +218,16 @@ Endpoints implementados nesta etapa:
 - `GET /api/v1/transaction-summaries`.
 
 Listagens e resumos exigem `start_date` e `end_date` em ISO 8601 e aceitam as
-perspectivas `COMPETENCE`, `DUE` e `CASH`. Autenticação real ainda não existe;
-portanto, a API financeira não deve ser publicada na internet.
+perspectivas `COMPETENCE`, `DUE` e `CASH`. Todos os endpoints financeiros
+exigem sessão autenticada e inferem ownership exclusivamente do usuário da
+sessão.
+
+O browser recebe um identificador opaco em cookie `HttpOnly`; somente seu hash
+SHA-256 é persistido. Login e toda escrita autenticada exigem `Origin` na
+allowlist. Escritas também exigem `X-CSRF-Token`, fornecido por login ou
+`/auth/me` e mantido apenas em memória pelo frontend. Logout revoga a sessão no
+servidor e remove o cookie. Em produção cross-origin o cookie usa
+`SameSite=None; Secure`; em desenvolvimento local usa `SameSite=Lax`.
 
 ## Testes
 
@@ -234,8 +261,9 @@ A prioridade atual é **Web Platform Migration**:
 4. reproduzir Contas e Categorias — concluído;
 5. reproduzir Movimentações — concluído;
 6. validar equivalência funcional e financeira — concluído;
-7. preparar os ambientes de produção — próximo passo;
-8. decidir explicitamente pela aposentadoria do Streamlit somente após todos os
+7. autenticação browser-first — concluída;
+8. preparar os ambientes de produção — próximo passo;
+9. decidir explicitamente pela aposentadoria do Streamlit somente após todos os
    critérios de retirada serem atendidos.
 
 Novos domínios financeiros permanecem bloqueados durante esse marco.

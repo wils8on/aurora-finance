@@ -2,6 +2,8 @@ import type { ApiError, ApiErrorEnvelope } from '../types/api'
 
 const DEFAULT_TIMEOUT_MS = 8_000
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
+let csrfToken: string | null = null
+let unauthorizedHandler: (() => void) | null = null
 
 export const API_BASE_URL = (
   configuredBaseUrl || 'http://localhost:8000/api/v1'
@@ -23,6 +25,11 @@ export class ApiClientError extends Error {
     this.requestId = error.request_id
     this.status = status
   }
+}
+
+export function configureAuthentication(options: { csrfToken?: string | null; onUnauthorized?: (() => void) | null }) {
+  if ('csrfToken' in options) csrfToken = options.csrfToken ?? null
+  if ('onUnauthorized' in options) unauthorizedHandler = options.onUnauthorized ?? null
 }
 
 function isApiErrorEnvelope(value: unknown): value is ApiErrorEnvelope {
@@ -55,8 +62,10 @@ export async function apiRequest<T>(
   try {
     const response = await fetch(`${API_BASE_URL}/${path.replace(/^\//, '')}`, {
       ...options,
+      credentials: 'include',
       headers: {
         Accept: 'application/json',
+        ...(options.method && !['GET', 'HEAD'].includes(options.method) && csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
         ...options.headers,
       },
       signal: controller.signal,
@@ -65,7 +74,9 @@ export async function apiRequest<T>(
 
     if (!response.ok) {
       if (isApiErrorEnvelope(payload)) {
-        throw new ApiClientError(payload.error, response.status)
+        const error = new ApiClientError(payload.error, response.status)
+        if (response.status === 401 && path !== 'auth/login') unauthorizedHandler?.()
+        throw error
       }
       throw new ApiClientError(
         {

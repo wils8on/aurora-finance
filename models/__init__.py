@@ -1,6 +1,7 @@
 """Modelos fundamentais do Aurora Finance."""
 
 from models.account import Account
+from models.auth_session import AuthSession
 from models.category import Category, Subcategory
 from models.enums import (
     AccountType,
@@ -16,6 +17,7 @@ from models.user import User
 __all__ = [
     "Account",
     "AccountType",
+    "AuthSession",
     "Category",
     "CategoryType",
     "DerivedTransactionStatus",

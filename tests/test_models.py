@@ -12,6 +12,7 @@ from models import Account, AccountType, Category, CategoryType, Subcategory, Us
 def test_database_initialization(test_engine) -> None:
     assert set(inspect(test_engine).get_table_names()) == {
         "accounts",
+        "auth_sessions",
         "categories",
         "settlements",
         "subcategories",

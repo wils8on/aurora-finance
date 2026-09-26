@@ -114,7 +114,7 @@ por:
 
 - validar payload e parâmetros;
 - obter a Session do request;
-- resolver o futuro `current_user`;
+- resolver `current_user` pela sessão autenticada;
 - converter contratos HTTP em tipos do domínio;
 - chamar services ou query services;
 - serializar respostas;
@@ -223,27 +223,35 @@ backend.
 
 ## 13. Autenticação e segurança
 
-Autenticação real ainda não está implementada nem teve provedor escolhido.
-A API financeira não poderá ser publicada na internet sem autenticação
-adequada.
+A estratégia escolhida é autenticação própria: email e senha com hash Argon2id,
+sessão opaca persistida no backend e cookie HttpOnly. Ela mantém logout e
+revogação sob controle do Aurora, evita expor a credencial de sessão ao
+JavaScript e não adiciona dependência operacional de um provedor externo.
+OIDC/OAuth permanece uma alternativa futura se a operação multiusuário exigir.
 
-Fluxo futuro:
+Fluxo:
 
 ```text
-React
-→ credencial, token ou sessão
-→ FastAPI
-→ current_user
-→ services
+React → login
+→ FastAPI valida Argon2id e cria AuthSession
+→ cookie opaco HttpOnly
+→ dependência central resolve current_user
+→ services/query services
 ```
 
-O cliente nunca escolhe `user_id`. Em desenvolvimento local poderá existir um
-usuário operacional explicitamente configurado. Produção deve impedir criação
-automática de usuário e qualquer modo operacional inseguro.
+Somente o hash SHA-256 do token da sessão é persistido. O token CSRF separado é
+mantido em memória pelo frontend e enviado no header `X-CSRF-Token` para
+operações inseguras. Essas operações também validam `Origin`; login valida
+`Origin` para impedir login CSRF. Logout revoga a sessão no servidor.
+
+O cliente nunca escolhe `user_id`. Não há fallback implícito para usuário de
+desenvolvimento nem endpoint público de cadastro. O primeiro usuário é
+provisionado por CLI. Produção exige cookie `Secure`, `SameSite=None`, HTTPS e
+allowlist CORS explícita; desenvolvimento usa `SameSite=Lax`.
 
 Regras adicionais:
 
-- CORS usa origens explícitas e não é autenticação;
+- CORS usa origens explícitas e não substitui autenticação ou CSRF;
 - HTTPS é obrigatório em produção;
 - ownership é sempre verificado no backend;
 - payloads são validados;

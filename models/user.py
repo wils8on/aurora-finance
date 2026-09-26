@@ -15,13 +15,18 @@ class User(TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="BRL")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     accounts: Mapped[list["Account"]] = relationship(back_populates="user")
     categories: Mapped[list["Category"]] = relationship(back_populates="user")
     transactions: Mapped[list["Transaction"]] = relationship(
         back_populates="user", passive_deletes=True
     )
+    auth_sessions: Mapped[list["AuthSession"]] = relationship(
+        back_populates="user", passive_deletes=True
+    )
 
 
 from models.account import Account  # noqa: E402
 from models.category import Category  # noqa: E402
+from models.auth_session import AuthSession  # noqa: E402

@@ -46,3 +46,15 @@ class OwnershipError(ApplicationError):
     """Recurso não pertence ao usuário que executa a operação."""
 
     default_code = "RESOURCE_OWNERSHIP_MISMATCH"
+
+
+class AuthenticationError(ApplicationError):
+    """Sessão ausente, inválida ou credenciais incorretas."""
+
+    default_code = "AUTHENTICATION_REQUIRED"
+
+
+class AuthorizationError(ApplicationError):
+    """Requisição autenticada sem autorização de segurança suficiente."""
+
+    default_code = "AUTHORIZATION_FAILED"

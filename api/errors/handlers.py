@@ -13,6 +13,8 @@ from fastapi.responses import JSONResponse
 
 from services import (
     ApplicationError,
+    AuthenticationError,
+    AuthorizationError,
     ConflictError,
     NotFoundError,
     OwnershipError,
@@ -72,7 +74,11 @@ def register_error_handlers(app: FastAPI) -> None:
     async def application_error_handler(
         request: Request, error: ApplicationError
     ) -> JSONResponse:
-        if isinstance(error, ValidationError):
+        if isinstance(error, AuthenticationError):
+            status_code = 401 if error.code != "CSRF_INVALID" else 403
+        elif isinstance(error, AuthorizationError):
+            status_code = 403
+        elif isinstance(error, ValidationError):
             status_code = 422
         elif isinstance(error, (NotFoundError, OwnershipError)):
             status_code = 404

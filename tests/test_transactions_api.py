@@ -52,7 +52,7 @@ def financial_api(test_engine):
             "rent": rent.id,
         }
 
-    app = create_app(ApiSettings(environment=Environment.TEST, cors_origins=(), dev_user_email=None))
+    app = create_app(ApiSettings(environment=Environment.TEST, cors_origins=()))
 
     def session_override(request: Request) -> Generator[Session, None, None]:
         session = factory()

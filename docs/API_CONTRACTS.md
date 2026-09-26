@@ -3,9 +3,9 @@
 Status: implementação parcial
 Versão inicial planejada: `/api/v1`
 
-Health, contas, categorias, subcategorias, movimentações, liquidações,
-cancelamento e resumos estão implementados. Autenticação real e produção
-permanecem planejados.
+Health, autenticação, contas, categorias, subcategorias, movimentações,
+liquidações, cancelamento e resumos estão implementados. Deploy de produção
+permanece planejado.
 
 ## 1. Propósito
 
@@ -30,7 +30,7 @@ versão HTTP não altera os valores persistidos dos enums nem a versão do domí
 - Nomes de campos são estáveis e em inglês.
 - Enums usam valores canônicos, não rótulos de apresentação.
 - Entidades ORM não são contratos públicos.
-- O frontend não envia `user_id`; ele vem do futuro `current_user`.
+- O frontend não envia `user_id`; ele vem da sessão autenticada.
 - Ownership é validado no backend.
 - Campos derivados são calculados no backend.
 - O frontend depende de códigos de erro, não de textos.
@@ -182,8 +182,8 @@ Categorias:
 | 422 | payload inválido ou validação semântica |
 | 404 | recurso inexistente ou ownership ocultado |
 | 409 | conflito ou transição financeira inválida |
-| 401 | não autenticado, futuramente |
-| 403 | não autorizado, quando aplicável futuramente |
+| 401 | credenciais inválidas ou sessão ausente, inválida ou expirada |
+| 403 | Origin ou proteção CSRF inválida |
 | 500 | erro inesperado |
 
 Exceptions do domínio permanecem independentes de FastAPI e são traduzidas por
@@ -204,27 +204,39 @@ abrir
 Services podem usar `flush`; repositories não fazem commit. A criação conjunta
 de Transaction + Settlement permanece uma única operação atômica.
 
-## 12. Autenticação futura
+## 12. Autenticação
 
-Autenticação não está implementada e o provedor não foi escolhido.
+A autenticação é própria, sem cadastro público. Senhas são hashes Argon2id e o
+usuário inicial é provisionado por comando administrativo.
 
 ```text
-React
-→ credencial, token ou sessão
-→ FastAPI
+React → email/senha no POST de login
+→ FastAPI cria AuthSession
+→ cookie opaco HttpOnly + CSRF token em memória
 → current_user
-→ services
+→ services/query services
 ```
 
-Em desenvolvimento poderá existir `current_user` operacional explicitamente
-configurado. Em produção:
+Endpoints:
+
+```text
+POST /api/v1/auth/login
+GET  /api/v1/auth/me
+POST /api/v1/auth/logout
+```
+
+O cookie contém o token aleatório bruto; o banco persiste somente SHA-256. A
+sessão expira e pode ser revogada. Login e escritas exigem `Origin` permitido;
+escritas autenticadas também exigem `X-CSRF-Token`. `/auth/me` e login devolvem
+o token CSRF, mas nunca senha, hash ou token de sessão. Em produção:
 
 - não criar usuário automaticamente;
 - não aceitar modo operacional inseguro;
-- impedir publicação da API financeira sem autenticação adequada;
+- usar cookie `Secure; SameSite=None` para as origens separadas;
+- exigir allowlist CORS HTTPS explícita;
 - nunca confiar em `user_id` enviado pelo cliente.
 
-CORS não substitui autenticação.
+CORS não substitui autenticação nem CSRF.
 
 ## 13. Endpoints
 
@@ -234,6 +246,14 @@ CORS não substitui autenticação.
 
 ```text
 GET /api/v1/health
+```
+
+### Autenticação
+
+```text
+POST /api/v1/auth/login
+GET  /api/v1/auth/me
+POST /api/v1/auth/logout
 ```
 
 ### Contas

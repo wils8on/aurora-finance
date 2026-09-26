@@ -14,6 +14,9 @@ export interface ApiErrorEnvelope {
   error: ApiError
 }
 
+export interface AuthenticatedUser { id: number; name: string; email: string; currency: string }
+export interface AuthSessionResponse { user: AuthenticatedUser; csrf_token: string }
+
 export type Money = string
 export type EconomicDate = string
 export type AccountType = 'CHECKING' | 'SAVINGS' | 'CASH' | 'DIGITAL' | 'OTHER'

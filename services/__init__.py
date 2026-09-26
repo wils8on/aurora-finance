@@ -1,8 +1,11 @@
 """Serviços de regras de negócio do Aurora Finance."""
 
 from services.clock import Clock, FixedClock, SystemClock
+from services.auth_service import AuthService, hash_password, provision_user, token_hash, verify_password
 from services.errors import (
     ApplicationError,
+    AuthenticationError,
+    AuthorizationError,
     ConflictError,
     NotFoundError,
     OwnershipError,
@@ -25,6 +28,9 @@ from services.transaction_service import TransactionService, TransactionServiceE
 __all__ = [
     "AccountService",
     "ApplicationError",
+    "AuthenticationError",
+    "AuthorizationError",
+    "AuthService",
     "BootstrapService",
     "CategoryService",
     "Clock",
@@ -41,4 +47,8 @@ __all__ = [
     "TransactionService",
     "TransactionServiceError",
     "ValidationError",
+    "hash_password",
+    "provision_user",
+    "token_hash",
+    "verify_password",
 ]

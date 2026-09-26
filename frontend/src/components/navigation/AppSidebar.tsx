@@ -10,12 +10,16 @@ import {
   ReceiptText,
   Sparkles,
   WalletCards,
+  LogOut,
 } from 'lucide-react'
 import { useHealth } from '../../hooks/useHealth'
+import type { AuthenticatedUser } from '../../types/api'
 
 interface AppSidebarProps {
   isOpen: boolean
   onClose: () => void
+  user: AuthenticatedUser
+  onLogout: () => Promise<void>
 }
 
 const navigation = [
@@ -32,7 +36,7 @@ const upcoming = [
   { label: 'Relatórios', icon: BarChart3 },
 ]
 
-export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
+export function AppSidebar({ isOpen, onClose, user, onLogout }: AppSidebarProps) {
   const { state: health, retry } = useHealth()
   return (
     <aside
@@ -86,6 +90,10 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
           <span>{health.kind === 'available' ? 'API disponível' : health.kind === 'loading' ? 'Aguarde um instante' : 'Não foi possível conectar'}</span>
         </div>
         {health.kind === 'error' && <button type="button" onClick={retry}>Tentar novamente</button>}
+      </div>
+      <div className="sidebar-identity">
+        <div><strong>{user.name}</strong><span>{user.email}</span></div>
+        <button type="button" onClick={() => void onLogout()}><LogOut size={17} aria-hidden="true" />Sair</button>
       </div>
     </aside>
   )

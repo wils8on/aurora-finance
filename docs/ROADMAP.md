@@ -39,12 +39,15 @@ Ordem aprovada:
 6. reproduzir Contas e Categorias — concluído;
 7. reproduzir Movimentações — concluído;
 8. validar equivalência funcional e financeira — concluído;
-9. preparar frontend, backend, autenticação e banco de produção — próximo passo;
-10. remover Streamlit.
+9. implementar autenticação, sessão, CSRF e proteção das APIs — concluído;
+10. preparar frontend, backend e banco de produção — próximo passo;
+11. remover Streamlit.
 
 A API atualmente expõe health, contas, categorias, subcategorias, Transaction,
 Settlement, cancelamento e resumos por competência, vencimento e caixa.
-Autenticação real permanece planejada e é obrigatória antes de publicação.
+Autenticação real está implementada com Argon2id, sessão opaca revogável,
+cookie HttpOnly, proteção CSRF e ownership derivado da sessão. O deploy e a
+validação operacional de produção permanecem pendentes.
 
 A auditoria de paridade validou os mesmos resultados financeiros na vertical
 slice Streamlit e em React + FastAPI. A perspectiva Caixa utiliza o dia

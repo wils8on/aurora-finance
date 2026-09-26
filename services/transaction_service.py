@@ -258,6 +258,12 @@ class TransactionService:
                 code="SUBCATEGORY_NOT_FOUND",
                 field="subcategory_id",
             )
+        if subcategory.category.user_id != category.user_id:
+            raise OwnershipError(
+                "Subcategory não pertence ao User informado.",
+                code="SUBCATEGORY_OWNERSHIP_MISMATCH",
+                field="subcategory_id",
+            )
         if subcategory.category_id != category.id:
             raise ValidationError(
                 "Subcategory não pertence à Category informada.",

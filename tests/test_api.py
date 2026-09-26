@@ -62,7 +62,6 @@ def api_context(test_engine):
     settings = ApiSettings(
         environment=Environment.TEST,
         cors_origins=("http://localhost:5173",),
-        dev_user_email=None,
     )
     app = create_app(settings)
 
@@ -112,6 +111,9 @@ def test_openapi_exposes_the_current_api_scope(api_context) -> None:
     assert response.status_code == 200
     assert set(response.json()["paths"]) == {
         "/api/v1/health",
+        "/api/v1/auth/login",
+        "/api/v1/auth/logout",
+        "/api/v1/auth/me",
         "/api/v1/accounts",
         "/api/v1/categories",
         "/api/v1/categories/{category_id}/subcategories",
@@ -339,35 +341,20 @@ def test_cors_allows_only_configured_origin(api_context) -> None:
     assert "access-control-allow-origin" not in denied.headers
 
 
-def test_production_cannot_start_without_real_authentication() -> None:
+def test_production_requires_secure_authentication_cookie() -> None:
     settings = ApiSettings(
         environment=Environment.PRODUCTION,
         cors_origins=("https://example.github.io",),
-        dev_user_email=None,
     )
 
-    with pytest.raises(RuntimeError, match="autenticação"):
+    with pytest.raises(RuntimeError, match="Secure"):
         create_app(settings)
-
-
-def test_dev_current_user_never_creates_user_implicitly(session) -> None:
-    settings = ApiSettings(
-        environment=Environment.DEVELOPMENT,
-        cors_origins=("http://localhost:5173",),
-        dev_user_email="missing@example.com",
-    )
-
-    with pytest.raises(RuntimeError, match="não corresponde"):
-        get_current_user(session, settings)
-
-    assert session.query(User).count() == 0
 
 
 def test_cors_wildcard_is_rejected() -> None:
     settings = ApiSettings(
         environment=Environment.TEST,
         cors_origins=("*",),
-        dev_user_email=None,
     )
 
     with pytest.raises(RuntimeError, match="wildcard"):

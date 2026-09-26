@@ -3,14 +3,18 @@ import { Menu } from 'lucide-react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { AppSidebar } from '../components/navigation/AppSidebar'
 import { IconButton } from '../components/base/IconButton'
+import { useAuth } from '../features/auth/AuthContext'
 
 export function AppLayout() {
   const [isNavigationOpen, setNavigationOpen] = useState(false)
   const location = useLocation()
+  const { user, logout } = useAuth()
 
   useEffect(() => {
     setNavigationOpen(false)
   }, [location.pathname])
+
+  if (!user) return null
 
   return (
     <div className="app-shell">
@@ -20,6 +24,8 @@ export function AppLayout() {
       <AppSidebar
         isOpen={isNavigationOpen}
         onClose={() => setNavigationOpen(false)}
+        user={user}
+        onLogout={logout}
       />
       {isNavigationOpen && (
         <button
