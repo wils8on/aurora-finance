@@ -20,6 +20,8 @@ de caixa (`Settlement`) e prioriza rastreabilidade e consistência financeira.
 - foundation React, TypeScript e Vite com HashRouter, layout responsivo,
   Aurora UI v1, cliente HTTP e integração com a API;
 - listagem e cadastro web de contas, categorias e subcategorias;
+- experiência web de Movimentações com perspectivas, período, filtros,
+  paginação, resumos, criação, detalhe, liquidações e cancelamento;
 - testes do frontend com Vitest e React Testing Library.
 
 O Streamlit é um protótipo funcional temporário e a referência de equivalência
@@ -43,9 +45,9 @@ SQLAlchemy
 SQLite (desenvolvimento) / PostgreSQL (produção)
 ```
 
-A equivalência web de Movimentações, a autenticação real e o PostgreSQL de
-produção ainda não estão implementados. A API já expõe os fluxos financeiros
-necessários para continuar a equivalência da vertical slice.
+A validação final de equivalência, a autenticação real e o PostgreSQL de
+produção ainda não estão implementados. React e FastAPI já cobrem os fluxos da
+vertical slice de Contas, Categorias e Movimentações.
 GitHub Pages hospedará somente o frontend estático. O backend Python será
 hospedado separadamente e consumido por HTTPS.
 
@@ -151,8 +153,8 @@ npm run dev
 
 A aplicação estará disponível em `http://localhost:5173/aurora-finance/` e usa
 rotas hash. `VITE_API_BASE_URL` é uma configuração pública e não deve conter
-segredos. O frontend consome health, contas, categorias e subcategorias. A área
-de Movimentações permanece como placeholder até a próxima etapa de equivalência.
+segredos. O frontend consome health, contas, categorias, subcategorias,
+movimentações, liquidações e resumos financeiros.
 
 Validações do frontend:
 
@@ -226,8 +228,8 @@ A prioridade atual é **Web Platform Migration**:
 2. preparar a camada de aplicação;
 3. fundação React/Vite — concluída;
 4. reproduzir Contas e Categorias — concluído;
-5. reproduzir Movimentações — próximo passo;
-6. validar equivalência funcional;
+5. reproduzir Movimentações — concluído;
+6. validar equivalência funcional — próximo passo;
 7. preparar os ambientes de produção;
 8. remover Streamlit somente após todos os critérios serem atendidos.
 

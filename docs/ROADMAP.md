@@ -37,8 +37,8 @@ Ordem aprovada:
 4. criar testes de integração da API — cobertura financeira concluída;
 5. criar a fundação React/Vite — concluído;
 6. reproduzir Contas e Categorias — concluído;
-7. reproduzir Movimentações — próximo passo;
-8. validar equivalência funcional e financeira;
+7. reproduzir Movimentações — concluído;
+8. validar equivalência funcional e financeira — próximo passo;
 9. preparar frontend, backend, autenticação e banco de produção;
 10. remover Streamlit.
 
@@ -50,8 +50,11 @@ A foundation web implementa React/TypeScript/Vite, `HashRouter`, Aurora UI v1,
 shell responsivo, navegação lateral, componentes reutilizáveis e cliente HTTP
 estruturado. Contas, Categorias e Subcategorias possuem listagem e cadastro
 integrados à API, com estados de carregamento, vazio, erro e sucesso.
-Movimentações permanece como placeholder, sem consulta financeira nessa área.
-O deploy no GitHub Pages ainda não foi realizado.
+Movimentações oferece perspectivas de competência, vencimento e caixa, período
+mensal, filtros e paginação server-side, summaries reais, criação pendente ou
+historicamente liquidada, detalhe, histórico de liquidações, Settlement parcial
+e integral e cancelamento quando permitido. O deploy no GitHub Pages ainda não
+foi realizado.
 
 Durante este marco ficam bloqueados:
 
