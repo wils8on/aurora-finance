@@ -169,6 +169,20 @@ def test_valid_login_me_and_response_do_not_expose_credentials(auth_context) -> 
     assert me.json()["user"]["email"] == "a@example.com"
 
 
+def test_login_cookie_uses_configured_security_policy(auth_context) -> None:
+    client, _factory, _ids = auth_context
+
+    header = client.post(
+        "/api/v1/auth/login",
+        headers={"Origin": ORIGIN},
+        json={"email": "a@example.com", "password": PASSWORD},
+    ).headers["set-cookie"].lower()
+
+    assert "httponly" in header
+    assert "samesite=lax" in header
+    assert "path=/api/v1" in header
+
+
 def test_invalid_login_has_no_session_and_conceals_reason(auth_context) -> None:
     client, _factory, _ids = auth_context
     response = client.post(

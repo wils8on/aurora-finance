@@ -41,8 +41,9 @@ Ordem aprovada:
 8. validar equivalência funcional e financeira — concluído;
 9. implementar autenticação, sessão, CSRF e proteção das APIs — concluído;
 10. validar backend e suíte financeira em PostgreSQL real — concluído;
-11. preparar frontend, backend e banco de produção — próximo passo;
-12. remover Streamlit.
+11. definir arquitetura e checklist de produção — concluído;
+12. implantar frontend, backend e banco de produção — próximo passo;
+13. remover Streamlit.
 
 A API atualmente expõe health, contas, categorias, subcategorias, Transaction,
 Settlement, cancelamento e resumos por competência, vencimento e caixa.
@@ -51,7 +52,9 @@ cookie HttpOnly, proteção CSRF e ownership derivado da sessão. Todas as
 migrations, autenticação, ownership e o oráculo financeiro foram validados em
 PostgreSQL 17.11 real, inclusive `timestamptz` no limite operacional de
 `America/Sao_Paulo` e múltiplos Settlements. O deploy e a validação operacional
-no provedor de produção permanecem pendentes.
+no provedor de produção permanecem pendentes. A topologia aprovada usa uma
+única origem HTTPS com frontend em `/`, FastAPI em `/api/*` e PostgreSQL
+gerenciado; GitHub Pages não é requisito dessa arquitetura.
 
 A auditoria de paridade validou os mesmos resultados financeiros na vertical
 slice Streamlit e em React + FastAPI. A perspectiva Caixa utiliza o dia
@@ -67,8 +70,9 @@ integrados à API, com estados de carregamento, vazio, erro e sucesso.
 Movimentações oferece perspectivas de competência, vencimento e caixa, período
 mensal, filtros e paginação server-side, summaries reais, criação pendente ou
 historicamente liquidada, detalhe, histórico de liquidações, Settlement parcial
-e integral e cancelamento quando permitido. O deploy no GitHub Pages ainda não
-foi realizado.
+e integral e cancelamento quando permitido. Nenhum deploy foi realizado; a
+arquitetura de produção substituiu a hipótese de GitHub Pages por uma origem
+única com roteamento de edge.
 
 Durante este marco ficam bloqueados:
 

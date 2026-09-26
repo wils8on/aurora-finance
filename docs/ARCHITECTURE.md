@@ -6,18 +6,15 @@ O núcleo financeiro Python está implementado e deve ser preservado. A interfac
 Streamlit existente é um protótipo funcional temporário e a referência de
 equivalência da migração web.
 
-A arquitetura definitiva de apresentação será React + TypeScript + Vite,
-consumindo uma API FastAPI. Esses componentes ainda estão planejados e não
-existem no repositório.
+A apresentação definitiva é React + TypeScript + Vite consumindo FastAPI. A
+vertical slice está implementada; o ambiente de produção ainda não foi criado.
 
 ## 2. Arquitetura alvo
 
 ```text
-GitHub Pages
-↓
-React + TypeScript + Vite
-↓ HTTPS / JSON
-FastAPI (/api/v1)
+Browser → HTTPS → edge/roteador gerenciado
+                    ├── / e /assets/* → React + TypeScript + Vite
+                    └── /api/* → FastAPI (/api/v1)
 ↓
 Services / Query Services
 ↓
@@ -38,15 +35,16 @@ Responsabilidades:
 - Models representam entidades persistentes.
 - SQLAlchemy e Alembic permanecem a camada de persistência e evolução do schema.
 
-## 3. GitHub Pages
+## 3. Hospedagem e origem pública
 
-GitHub Pages hospedará exclusivamente o frontend estático compilado. Não
-executa Python, FastAPI, SQLAlchemy, Alembic, migrations, SQLite ou qualquer
-banco do backend.
+A decisão de produção é usar uma única origem HTTPS com roteamento por caminho:
+frontend em `/` e `/assets/*`, API em `/api/*`. GitHub Pages não é necessário
+nem recomendado para essa topologia, pois não fornece sozinho essa composição.
+O edge pode ser nativo da plataforma; não há exigência de proxy autogerenciado.
 
-O backend será hospedado separadamente, em HTTPS. O frontend consumirá a URL
-pública da API. A implantação do backend e a escolha do provedor permanecem
-decisões futuras.
+A decisão completa está em `PRODUCTION_ARCHITECTURE.md` e os gates de
+implantação em `PRODUCTION_CHECKLIST.md`. Provedor e domínio permanecem
+deliberadamente não escolhidos.
 
 ## 4. Monorepo e estrutura
 
@@ -194,14 +192,14 @@ Rotas iniciais:
 
 A estrutura não deve bloquear módulos futuros, mas eles não serão antecipados.
 
-## 11. Roteamento no GitHub Pages
+## 11. Roteamento do frontend
 
-A decisão inicial é `HashRouter`, por funcionar com refresh direto no GitHub
-Pages sem rewrite de servidor. `BrowserRouter` poderá ser reconsiderado quando
-houver hospedagem com fallback SPA apropriado.
+A decisão inicial `HashRouter` permanece por não criar dependência de fallback
+SPA. `BrowserRouter` poderá ser reconsiderado depois que o edge demonstrar
+fallback confiável; não é requisito para o primeiro deploy.
 
-O `base` do Vite deverá refletir o nome real e a capitalização real do
-repositório no momento do deploy. Não há valor fixado nesta documentação.
+O `base` do Vite é configurável por `VITE_BASE_PATH`: o padrão atual permanece
+`/aurora-finance/` e produção na raiz usará `/`.
 
 ## 12. Ambientes e configuração
 
@@ -213,11 +211,11 @@ Desenvolvimento planejado:
 
 Produção planejada:
 
-- frontend: GitHub Pages;
-- backend: host HTTPS separado;
-- banco: PostgreSQL.
+- origem única HTTPS com frontend estático em `/`;
+- FastAPI roteado por `/api/*`;
+- PostgreSQL gerenciado e privado quando possível.
 
-`VITE_API_BASE_URL` poderá conter a URL pública da API. Toda variável
+`VITE_API_BASE_URL` será `/api/v1` em produção. Toda variável
 `VITE_*` é pública. `DATABASE_URL` e demais segredos pertencem somente ao
 backend.
 
@@ -246,8 +244,9 @@ operações inseguras. Essas operações também validam `Origin`; login valida
 
 O cliente nunca escolhe `user_id`. Não há fallback implícito para usuário de
 desenvolvimento nem endpoint público de cadastro. O primeiro usuário é
-provisionado por CLI. Produção exige cookie `Secure`, `SameSite=None`, HTTPS e
-allowlist CORS explícita; desenvolvimento usa `SameSite=Lax`.
+provisionado por CLI. Na topologia same-origin, produção usa cookie host-only
+`Secure; HttpOnly; SameSite=Lax; Path=/api/v1`. `SameSite=None` fica reservado
+a uma alternativa realmente cross-site e exige `Secure`.
 
 Regras adicionais:
 

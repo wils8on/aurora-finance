@@ -32,14 +32,12 @@ para a migração web. A equivalência funcional e financeira da vertical slice
 foi validada; o Streamlit permanece no repositório aguardando decisão explícita
 de aposentadoria e não receberá novos domínios.
 
-## Arquitetura alvo — planejada
+## Arquitetura de produção — preparada
 
 ```text
-GitHub Pages
-↓
-React + TypeScript + Vite
-↓ HTTPS / JSON
-FastAPI (/api/v1)
+Browser → HTTPS → edge/roteador gerenciado
+                    ├── / e /assets/* → React + TypeScript + Vite
+                    └── /api/* → FastAPI (/api/v1)
 ↓
 Services / Query Services
 ↓
@@ -56,8 +54,9 @@ validada, incluindo competência, vencimento, caixa e o dia operacional
 validado contra PostgreSQL real; o deploy de produção ainda não foi realizado.
 React e FastAPI cobrem os fluxos da vertical slice de Contas, Categorias e
 Movimentações.
-GitHub Pages hospedará somente o frontend estático. O backend Python será
-hospedado separadamente e consumido por HTTPS.
+A decisão para produção é uma única origem pública HTTPS com roteamento por
+caminho. GitHub Pages deixa de ser necessário, pois não compõe sozinho
+frontend e `/api/*` na mesma origem. Nenhum fornecedor ou deploy foi escolhido.
 
 O projeto permanece em monorepo. O backend existente continua na raiz, com
 `api/` e `frontend/` adicionados sem reorganização prematura para um diretório
@@ -81,10 +80,10 @@ Implementada:
 - Argon2-cffi para password hashing Argon2id.
 - Psycopg 3, em modo síncrono, para PostgreSQL.
 
-Planejada:
+Planejada para implantação:
 
 - PostgreSQL em produção;
-- GitHub Pages para o frontend.
+- edge/hospedagem estática e backend sob a mesma origem HTTPS.
 
 Frontend implementado:
 
@@ -139,6 +138,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 AUTH_SESSION_HOURS=12
 AUTH_COOKIE_NAME=aurora_session
 AUTH_COOKIE_SECURE=false
+AUTH_COOKIE_SAMESITE=lax
 ```
 
 `.env`, bancos pessoais e exports financeiros não devem ser versionados.
@@ -178,9 +178,9 @@ npm run typecheck
 npm run build
 ```
 
-O diretório `dist/` é gerado localmente e não é versionado. A configuração é
-compatível com o project site `/aurora-finance/`, mas nenhum deploy ou workflow
-de GitHub Pages foi criado.
+O diretório `dist/` é gerado localmente e não é versionado. O padrão local
+continua compatível com `/aurora-finance/`. No futuro build de produção,
+`VITE_BASE_PATH=/` e `VITE_API_BASE_URL=/api/v1` atenderão a origem única.
 
 ## Executar a API atual
 
@@ -229,8 +229,9 @@ O browser recebe um identificador opaco em cookie `HttpOnly`; somente seu hash
 SHA-256 é persistido. Login e toda escrita autenticada exigem `Origin` na
 allowlist. Escritas também exigem `X-CSRF-Token`, fornecido por login ou
 `/auth/me` e mantido apenas em memória pelo frontend. Logout revoga a sessão no
-servidor e remove o cookie. Em produção cross-origin o cookie usa
-`SameSite=None; Secure`; em desenvolvimento local usa `SameSite=Lax`.
+servidor e remove o cookie. Na topologia de produção same-origin o cookie usa
+`SameSite=Lax; Secure`; desenvolvimento local também usa `SameSite=Lax`, sem
+`Secure` quando executado por HTTP.
 
 ## Testes
 
@@ -280,8 +281,9 @@ A prioridade atual é **Web Platform Migration**:
 6. validar equivalência funcional e financeira — concluído;
 7. autenticação browser-first — concluída;
 8. validar compatibilidade PostgreSQL — concluído;
-9. preparar os ambientes de produção — próximo passo;
-10. decidir explicitamente pela aposentadoria do Streamlit somente após todos os
+9. definir arquitetura e checklist de produção — concluído;
+10. implantar e validar o ambiente de produção — próximo passo;
+11. decidir explicitamente pela aposentadoria do Streamlit somente após todos os
    critérios de retirada serem atendidos.
 
 Novos domínios financeiros permanecem bloqueados durante esse marco.
@@ -297,3 +299,5 @@ Novos domínios financeiros permanecem bloqueados durante esse marco.
 - Stack traces e payloads financeiros completos não devem ser expostos.
 
 Consulte `docs/API_CONTRACTS.md` para os contratos atuais da API.
+Consulte também `docs/PRODUCTION_ARCHITECTURE.md` e
+`docs/PRODUCTION_CHECKLIST.md` antes de qualquer publicação.

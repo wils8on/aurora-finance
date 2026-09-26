@@ -52,7 +52,7 @@ Frontend definitivo, planejado:
 - React;
 - TypeScript;
 - Vite;
-- GitHub Pages para hospedagem exclusiva do frontend estático.
+- hospedagem estática atrás do mesmo edge/origem pública da API.
 
 O Streamlit existente é um protótipo funcional temporário e uma referência
 de equivalência durante a migração. Ele não é a interface definitiva e não
@@ -65,14 +65,12 @@ do SQLite que dificultem futura migração para PostgreSQL.
 
 ## 4. Arquitetura
 
-Arquitetura alvo:
+Arquitetura alvo de produção:
 
 ```text
-GitHub Pages
-↓
-React + TypeScript + Vite
-↓ HTTPS / JSON
-FastAPI
+Browser → HTTPS → edge/roteador gerenciado
+                    ├── / e /assets/* → React + TypeScript + Vite
+                    └── /api/* → FastAPI
 ↓
 Services / Query Services
 ↓
@@ -501,8 +499,8 @@ Manter apenas .env.example no repositório.
 
 Na arquitetura web:
 
-- GitHub Pages hospeda somente o frontend estático;
-- o backend é hospedado separadamente e consumido por HTTPS;
+- frontend e API usam uma única origem HTTPS pública com roteamento por caminho;
+- GitHub Pages não é necessário para a topologia de produção escolhida;
 - CORS utiliza origens explícitas e não substitui autenticação;
 - toda variável `VITE_*` é pública;
 - `DATABASE_URL` e qualquer segredo existem apenas no backend;
@@ -640,7 +638,8 @@ A prioridade atual é **Web Platform Migration**:
 7. equivalência de Movimentações;
 8. validação funcional;
 9. preparação de produção;
-10. retirada do Streamlit.
+10. implantação da topologia de produção em origem única;
+11. retirada do Streamlit.
 
 Até a equivalência web, não avançar Transfer, Recurrence, Installment,
 CreditCard, Debt, Budget, Goal, Scenario, Investment ou Aurora Insights.

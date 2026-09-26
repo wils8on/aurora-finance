@@ -228,15 +228,18 @@ POST /api/v1/auth/logout
 O cookie contém o token aleatório bruto; o banco persiste somente SHA-256. A
 sessão expira e pode ser revogada. Login e escritas exigem `Origin` permitido;
 escritas autenticadas também exigem `X-CSRF-Token`. `/auth/me` e login devolvem
-o token CSRF, mas nunca senha, hash ou token de sessão. Em produção:
+o token CSRF, mas nunca senha, hash ou token de sessão. Em produção, na
+topologia de origem única:
 
 - não criar usuário automaticamente;
 - não aceitar modo operacional inseguro;
-- usar cookie `Secure; SameSite=None` para as origens separadas;
-- exigir allowlist CORS HTTPS explícita;
+- usar cookie host-only `Secure; HttpOnly; SameSite=Lax; Path=/api/v1`;
+- preservar allowlist HTTPS explícita para validação de `Origin`;
+- não depender de CORS no tráfego same-origin normal;
 - nunca confiar em `user_id` enviado pelo cliente.
 
-CORS não substitui autenticação nem CSRF.
+CORS não substitui autenticação nem CSRF. `SameSite=None` permanece disponível
+somente para uma alternativa cross-site e exige cookie `Secure`.
 
 ## 13. Endpoints
 

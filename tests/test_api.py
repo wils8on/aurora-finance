@@ -351,6 +351,28 @@ def test_production_requires_secure_authentication_cookie() -> None:
         create_app(settings)
 
 
+def test_samesite_none_requires_secure_cookie() -> None:
+    settings = ApiSettings(
+        environment=Environment.TEST,
+        cors_origins=("https://app.example.com",),
+        cookie_samesite="none",
+    )
+
+    with pytest.raises(RuntimeError, match="SameSite=None"):
+        create_app(settings)
+
+
+def test_invalid_cookie_samesite_is_rejected() -> None:
+    settings = ApiSettings(
+        environment=Environment.TEST,
+        cors_origins=("http://localhost:5173",),
+        cookie_samesite="invalid",
+    )
+
+    with pytest.raises(RuntimeError, match="AUTH_COOKIE_SAMESITE"):
+        create_app(settings)
+
+
 def test_cors_wildcard_is_rejected() -> None:
     settings = ApiSettings(
         environment=Environment.TEST,

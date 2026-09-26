@@ -25,6 +25,7 @@ class ApiSettings:
     session_cookie_name: str = "aurora_session"
     session_lifetime_hours: int = 12
     cookie_secure: bool = False
+    cookie_samesite: str = "lax"
 
     def validate(self) -> None:
         if "*" in self.cors_origins:
@@ -34,6 +35,10 @@ class ApiSettings:
                 raise RuntimeError("Cookies de produção devem utilizar Secure.")
             if not self.cors_origins or any(not origin.startswith("https://") for origin in self.cors_origins):
                 raise RuntimeError("Produção exige origens CORS HTTPS explícitas.")
+        if self.cookie_samesite not in {"lax", "strict", "none"}:
+            raise RuntimeError("AUTH_COOKIE_SAMESITE deve ser lax, strict ou none.")
+        if self.cookie_samesite == "none" and not self.cookie_secure:
+            raise RuntimeError("SameSite=None exige cookie Secure.")
         if self.session_lifetime_hours < 1 or self.session_lifetime_hours > 720:
             raise RuntimeError("AUTH_SESSION_HOURS deve estar entre 1 e 720.")
 
@@ -55,6 +60,7 @@ def load_settings() -> ApiSettings:
     )
     raw_cookie_secure = os.getenv("AUTH_COOKIE_SECURE")
     cookie_secure = environment == Environment.PRODUCTION if raw_cookie_secure is None else raw_cookie_secure.strip().lower() in {"1", "true", "yes"}
+    cookie_samesite = os.getenv("AUTH_COOKIE_SAMESITE", "lax").strip().lower()
     try:
         session_lifetime_hours = int(os.getenv("AUTH_SESSION_HOURS", "12"))
     except ValueError as error:
@@ -66,6 +72,7 @@ def load_settings() -> ApiSettings:
         session_cookie_name=os.getenv("AUTH_COOKIE_NAME", "aurora_session").strip(),
         session_lifetime_hours=session_lifetime_hours,
         cookie_secure=cookie_secure,
+        cookie_samesite=cookie_samesite,
     )
     settings.validate()
     return settings
