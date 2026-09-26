@@ -68,6 +68,21 @@ describe('Movimentações Web', () => {
     await waitFor(() => expect(transactionsApi.listTransactions).toHaveBeenCalledWith(expect.objectContaining({ perspective: 'CASH', transaction_type: 'EXPENSE', derived_status: 'PARTIAL', search: 'alugu', page: 2 })))
   })
 
+  it('aceita intervalo arbitrário e envia as duas datas à API', async () => {
+    renderWithProviders(<TransactionsPage />); await screen.findByText('Aluguel')
+    fireEvent.change(screen.getByLabelText('De'), { target: { value: '2026-08-15' } })
+    fireEvent.change(screen.getByLabelText('Até'), { target: { value: '2026-10-05' } })
+    await waitFor(() => expect(transactionsApi.listTransactions).toHaveBeenCalledWith(expect.objectContaining({ start_date: '2026-08-15', end_date: '2026-10-05' })))
+  })
+
+  it('distingue o liquidado no período do total na perspectiva de caixa', async () => {
+    renderWithProviders(<TransactionsPage />); await screen.findByText('Aluguel')
+    await userEvent.click(screen.getByRole('button', { name: 'Caixa' }))
+    await waitFor(() => expect(screen.getByText('Liquidado no período')).toBeInTheDocument())
+    expect(screen.getByText('Liquidado total')).toBeInTheDocument()
+    expect(screen.getAllByText('R$ 400,00')).toHaveLength(2)
+  })
+
   it('abre formulário e valida campos obrigatórios', async () => {
     renderWithProviders(<TransactionsPage />); await screen.findByText('Aluguel')
     await userEvent.click(screen.getByRole('button', { name: 'Nova movimentação' }))
@@ -121,6 +136,7 @@ describe('Movimentações Web', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Liquidar restante' }))
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar liquidação' }))
     await waitFor(() => expect(transactionsApi.createSettlement).toHaveBeenCalledWith(1, expect.objectContaining({ amount: '600.00' })))
+    expect(within(dialog).queryByRole('button', { name: 'Confirmar liquidação' })).not.toBeInTheDocument()
   })
 
   it('mostra erro da liquidação sem fechar detalhe', async () => {
@@ -132,6 +148,18 @@ describe('Movimentações Web', () => {
     fireEvent.change(within(dialog).getByLabelText('Data e hora *'), { target: { value: '2026-09-11T10:00' } })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar liquidação' }))
     expect(await within(dialog).findByRole('alert')).toBeInTheDocument()
+  })
+
+  it('expõe validações locais dos campos obrigatórios da liquidação', async () => {
+    renderWithProviders(<TransactionsPage />); await userEvent.click(await screen.findByText('Aluguel'))
+    const dialog = await screen.findByRole('dialog', { name: 'Detalhe da movimentação' })
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Registrar liquidação' }))
+    fireEvent.change(within(dialog).getByLabelText('Valor *'), { target: { value: '' } })
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Confirmar liquidação' }))
+    expect(within(dialog).getByText('Selecione a conta.')).toBeInTheDocument()
+    expect(within(dialog).getByText('Informe um valor positivo com até duas casas.')).toBeInTheDocument()
+    expect(within(dialog).getByText('Informe a data e hora da liquidação.')).toBeInTheDocument()
+    expect(transactionsApi.createSettlement).not.toHaveBeenCalled()
   })
 
   it('permite cancelamento apenas sem liquidações conhecidas', async () => {

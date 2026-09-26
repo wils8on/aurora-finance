@@ -355,6 +355,42 @@ def test_cash_list_counts_one_transaction_once_with_multiple_settlements(financi
     assert body["items"][0]["period_settled_amount"] == "1000.00"
 
 
+def test_cash_api_uses_sao_paulo_day_for_list_filters_and_summary(financial_api) -> None:
+    client, ids, _factory = financial_api
+    transaction = create_transaction(client, ids, amount="300.00")
+    response = client.post(
+        f"/api/v1/transactions/{transaction['id']}/settlements",
+        json=settlement_payload(ids, amount="100.00", settled_at="2026-09-23T02:30:00Z"),
+    )
+    assert response.status_code == 201
+
+    endpoint = "/api/v1/transactions"
+    day_22 = {"perspective": "CASH", "start_date": "2026-09-22", "end_date": "2026-09-22"}
+    body_22 = client.get(endpoint, params=day_22).json()
+    assert body_22["pagination"]["total_items"] == 1
+    assert body_22["items"][0]["reference_date"] == "2026-09-22"
+    assert body_22["items"][0]["period_settled_amount"] == "100.00"
+    assert body_22["items"][0]["settled_amount"] == "100.00"
+    summary_22 = client.get("/api/v1/transaction-summaries", params=day_22).json()
+    assert (summary_22["primary_2"], summary_22["primary_3"]) == ("100.00", "-100.00")
+
+    day_23 = {"perspective": "CASH", "start_date": "2026-09-23", "end_date": "2026-09-23"}
+    assert client.get(endpoint, params=day_23).json()["pagination"]["total_items"] == 0
+    assert client.get("/api/v1/transaction-summaries", params=day_23).json()["primary_2"] == "0.00"
+
+    response = client.post(
+        f"/api/v1/transactions/{transaction['id']}/settlements",
+        json=settlement_payload(ids, amount="200.00", settled_at="2026-09-23T12:00:00Z"),
+    )
+    assert response.status_code == 201
+    body_23 = client.get(endpoint, params=day_23).json()
+    assert body_23["pagination"]["total_items"] == 1
+    assert body_23["items"][0]["reference_date"] == "2026-09-23"
+    assert body_23["items"][0]["period_settled_amount"] == "200.00"
+    summary_23 = client.get("/api/v1/transaction-summaries", params=day_23).json()
+    assert (summary_23["primary_2"], summary_23["primary_3"]) == ("200.00", "-200.00")
+
+
 def test_summary_distinguishes_competence_due_and_cash(financial_api) -> None:
     client, ids, _factory = financial_api
     expense = create_transaction(client, ids, amount="1000.00")

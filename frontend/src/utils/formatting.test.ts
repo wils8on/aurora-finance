@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatEconomicDate, operationalDateTimeToIso } from './dates'
+import { formatEconomicDate, formatInstant, operationalDateTimeToIso } from './dates'
 import { formatMoneyBRL } from './money'
 
 describe('formatação financeira segura', () => {
@@ -14,5 +14,9 @@ describe('formatação financeira segura', () => {
 
   it('adiciona o offset operacional ao instante informado', () => {
     expect(operationalDateTimeToIso('2026-09-10T12:30')).toBe('2026-09-10T12:30:00-03:00')
+  })
+
+  it('apresenta instante UTC próximo da meia-noite no dia operacional correto', () => {
+    expect(formatInstant('2026-09-16T01:30:00Z')).toContain('15/09/2026')
   })
 })

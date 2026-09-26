@@ -38,13 +38,20 @@ Ordem aprovada:
 5. criar a fundação React/Vite — concluído;
 6. reproduzir Contas e Categorias — concluído;
 7. reproduzir Movimentações — concluído;
-8. validar equivalência funcional e financeira — próximo passo;
-9. preparar frontend, backend, autenticação e banco de produção;
+8. validar equivalência funcional e financeira — concluído;
+9. preparar frontend, backend, autenticação e banco de produção — próximo passo;
 10. remover Streamlit.
 
 A API atualmente expõe health, contas, categorias, subcategorias, Transaction,
 Settlement, cancelamento e resumos por competência, vencimento e caixa.
 Autenticação real permanece planejada e é obrigatória antes de publicação.
+
+A auditoria de paridade validou os mesmos resultados financeiros na vertical
+slice Streamlit e em React + FastAPI. A perspectiva Caixa utiliza o dia
+operacional `America/Sao_Paulo` para filtragem, referência, ordenação e resumos.
+O Streamlit permanece temporariamente no repositório, elegível para
+aposentadoria, mas aguardando decisão explícita e o cumprimento dos demais
+critérios de retirada abaixo.
 
 A foundation web implementa React/TypeScript/Vite, `HashRouter`, Aurora UI v1,
 shell responsivo, navegação lateral, componentes reutilizáveis e cliente HTTP

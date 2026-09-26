@@ -8,6 +8,7 @@ describe('HomePage', () => {
     renderWithProviders(<HomePage />)
     expect(screen.getByRole('heading', { name: 'Clareza para suas decisões financeiras.' })).toBeInTheDocument()
     expect(screen.getByText('Visão completa')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Disponível Movimentações/ })).toBeInTheDocument()
     expect(screen.queryByText(/saldo atual/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/receita mensal/i)).not.toBeInTheDocument()
   })

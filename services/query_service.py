@@ -1,7 +1,7 @@
 """Consultas e DTOs de leitura independentes da camada de apresentação."""
 
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
 
@@ -19,11 +19,8 @@ from models import (
     TransactionStatus,
     TransactionType,
 )
-from services.clock import Clock, OPERATIONAL_TIMEZONE, SystemClock
+from services.clock import Clock, SystemClock, operational_date, operational_period_utc
 from services.errors import NotFoundError, OwnershipError
-
-SAO_PAULO = OPERATIONAL_TIMEZONE
-
 
 class DatePerspective(str, Enum):
     COMPETENCE = "COMPETENCE"
@@ -310,8 +307,7 @@ class TransactionQueryService:
             .group_by(Settlement.transaction_id)
             .subquery()
         )
-        start_dt = datetime.combine(filters.start_date, time.min, SAO_PAULO)
-        end_dt = datetime.combine(filters.end_date + timedelta(days=1), time.min, SAO_PAULO)
+        start_dt, end_dt = operational_period_utc(filters.start_date, filters.end_date)
         period = (
             select(
                 Settlement.transaction_id.label("transaction_id"),
@@ -331,11 +327,12 @@ class TransactionQueryService:
             (settled < Transaction.amount, "PARTIAL"),
             else_="SETTLED",
         )
-        reference_date = case(
-            (filters.perspective == DatePerspective.COMPETENCE, Transaction.competence_date),
-            (filters.perspective == DatePerspective.DUE, Transaction.due_date),
-            else_=func.date(period.c.cash_reference),
-        )
+        if filters.perspective == DatePerspective.COMPETENCE:
+            reference_value = Transaction.competence_date
+        elif filters.perspective == DatePerspective.DUE:
+            reference_value = Transaction.due_date
+        else:
+            reference_value = period.c.cash_reference
         query = (
             select(
                 Transaction.id.label("id"),
@@ -352,7 +349,7 @@ class TransactionQueryService:
                 settled.label("settled_amount"),
                 remaining.label("remaining"),
                 period_settled.label("period_settled"),
-                reference_date.label("reference_date"),
+                reference_value.label("reference_value"),
                 state.label("derived_state"),
             )
             .join(Category, Category.id == Transaction.category_id)
@@ -394,13 +391,15 @@ class TransactionQueryService:
         columns = type(
             "QueryColumns",
             (),
-            {"state": state, "reference_date": reference_date},
+            {"state": state, "reference_date": reference_value},
         )
         return query, columns
 
     def _row_to_item(self, row, perspective: DatePerspective) -> TransactionListItem:
-        reference = row.reference_date
-        if isinstance(reference, str):
+        reference = row.reference_value
+        if perspective == DatePerspective.CASH and isinstance(reference, datetime):
+            reference = operational_date(reference)
+        elif isinstance(reference, str):
             reference = date.fromisoformat(reference)
         if reference is None:
             reference = row.due_date or row.competence_date

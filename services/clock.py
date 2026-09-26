@@ -1,10 +1,29 @@
 """Fonte temporal explícita da camada de aplicação."""
 
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Protocol
 from zoneinfo import ZoneInfo
 
 OPERATIONAL_TIMEZONE = ZoneInfo("America/Sao_Paulo")
+
+
+def operational_date(value: datetime) -> date:
+    """Retorna o dia financeiro de um instante persistido em UTC.
+
+    SQLite perde o offset de ``DateTime(timezone=True)``; por contrato esses
+    valores ingênuos representam UTC. PostgreSQL preserva o instante com
+    timezone, portanto ambos os casos convergem antes da conversão operacional.
+    """
+    if value.tzinfo is None or value.utcoffset() is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(OPERATIONAL_TIMEZONE).date()
+
+
+def operational_period_utc(start: date, end: date) -> tuple[datetime, datetime]:
+    """Converte um intervalo inclusivo de dias operacionais em limites UTC."""
+    start_at = datetime.combine(start, time.min, OPERATIONAL_TIMEZONE)
+    end_at = datetime.combine(end + timedelta(days=1), time.min, OPERATIONAL_TIMEZONE)
+    return start_at.astimezone(timezone.utc), end_at.astimezone(timezone.utc)
 
 
 class Clock(Protocol):

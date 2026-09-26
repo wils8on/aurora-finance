@@ -4,7 +4,7 @@ import { GlassPanel } from '../components/base/GlassPanel'
 import { PageHeader } from '../components/base/PageHeader'
 
 const shortcuts = [
-  { to: '/movimentacoes', title: 'Movimentações', description: 'Compromissos e realizações financeiras.', icon: Sparkles, status: 'Em preparação' },
+  { to: '/movimentacoes', title: 'Movimentações', description: 'Compromissos e realizações financeiras.', icon: Sparkles, status: 'Disponível' },
   { to: '/contas', title: 'Contas', description: 'Cadastre onde seus recursos financeiros estão.', icon: WalletCards, status: 'Disponível' },
   { to: '/categorias', title: 'Categorias', description: 'Organize a natureza de receitas e despesas.', icon: ListTree, status: 'Disponível' },
 ]

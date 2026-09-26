@@ -90,6 +90,13 @@ describe('CategoriesPage', () => {
     expect(postPayload).toEqual({ name: 'Energia' })
   })
 
+  it('não oferece criação de subcategoria para categoria inativa', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse([{ ...categories[1], is_active: false }])))
+    renderWithProviders(<CategoriesPage />)
+    await screen.findByText('Moradia')
+    expect(screen.getByRole('button', { name: 'Nova subcategoria' })).toBeDisabled()
+  })
+
   it('exibe erro de carregamento das categorias', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ error: { code: 'FAIL', message: 'Falha', field: null, details: {}, request_id: 'req' } }, 500)))
     renderWithProviders(<CategoriesPage />)

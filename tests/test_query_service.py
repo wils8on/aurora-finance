@@ -189,6 +189,114 @@ def test_cash_perspective_uses_only_settlements_in_period(session, query_context
     assert summary.primary_3 == Decimal("200.00")
 
 
+def test_cash_boundary_instant_belongs_only_to_previous_operational_day(
+    session, query_context
+) -> None:
+    user, income, _expense, account, service = query_context
+    transaction = service.create_transaction(
+        user_id=user.id,
+        category_id=income.id,
+        transaction_type=TransactionType.INCOME,
+        description="Receita 22 às 23h30",
+        amount=Decimal("100.00"),
+        competence_date=date(2026, 9, 22),
+    )
+    service.add_settlement(
+        transaction_id=transaction.id,
+        user_id=user.id,
+        account_id=account.id,
+        amount=Decimal("100.00"),
+        settled_at=datetime(2026, 9, 23, 2, 30, tzinfo=timezone.utc),
+    )
+    query = TransactionQueryService(session)
+    previous_day = filters(
+        user.id, perspective=DatePerspective.CASH,
+        start_date=date(2026, 9, 22), end_date=date(2026, 9, 22),
+    )
+    utc_day = filters(
+        user.id, perspective=DatePerspective.CASH,
+        start_date=date(2026, 9, 23), end_date=date(2026, 9, 23),
+    )
+    result = query.list_transactions(previous_day)
+    assert result.total == 1
+    assert result.items[0].reference_date == date(2026, 9, 22)
+    assert query.list_transactions(utc_day).total == 0
+    assert query.summarize(utc_day).primary_1 == Decimal("0.00")
+
+
+def test_cash_uses_operational_day_for_filters_reference_and_multiple_settlements(
+    session, query_context
+) -> None:
+    user, income, expense, account, service = query_context
+    received = service.create_transaction(
+        user_id=user.id,
+        category_id=income.id,
+        transaction_type=TransactionType.INCOME,
+        description="Receita na virada UTC",
+        amount=Decimal("300.00"),
+        competence_date=date(2026, 9, 1),
+    )
+    paid = service.create_transaction(
+        user_id=user.id,
+        category_id=expense.id,
+        transaction_type=TransactionType.EXPENSE,
+        description="Despesa na virada UTC",
+        amount=Decimal("100.00"),
+        competence_date=date(2026, 9, 1),
+    )
+    for transaction, amount, instant in (
+        (received, Decimal("100.00"), datetime(2026, 9, 23, 2, 30, tzinfo=timezone.utc)),
+        (received, Decimal("200.00"), datetime(2026, 9, 23, 12, 0, tzinfo=timezone.utc)),
+        (paid, Decimal("40.00"), datetime(2026, 9, 23, 2, 45, tzinfo=timezone.utc)),
+        (paid, Decimal("60.00"), datetime(2026, 9, 23, 14, 0, tzinfo=timezone.utc)),
+    ):
+        service.add_settlement(
+            transaction_id=transaction.id,
+            user_id=user.id,
+            account_id=account.id,
+            amount=amount,
+            settled_at=instant,
+        )
+
+    query = TransactionQueryService(session)
+    day_22 = filters(
+        user.id,
+        perspective=DatePerspective.CASH,
+        start_date=date(2026, 9, 22),
+        end_date=date(2026, 9, 22),
+    )
+    result_22 = query.list_transactions(day_22)
+    summary_22 = query.summarize(day_22)
+    assert result_22.total == 2
+    assert {item.reference_date for item in result_22.items} == {date(2026, 9, 22)}
+    assert {item.id: item.period_settled_amount for item in result_22.items} == {
+        received.id: Decimal("100.00"), paid.id: Decimal("40.00")
+    }
+    assert {item.id: item.settled_amount for item in result_22.items} == {
+        received.id: Decimal("300.00"), paid.id: Decimal("100.00")
+    }
+    assert (summary_22.primary_1, summary_22.primary_2, summary_22.primary_3) == (
+        Decimal("100.00"), Decimal("40.00"), Decimal("60.00")
+    )
+
+    day_23 = filters(
+        user.id,
+        perspective=DatePerspective.CASH,
+        start_date=date(2026, 9, 23),
+        end_date=date(2026, 9, 23),
+    )
+    result_23 = query.list_transactions(day_23)
+    summary_23 = query.summarize(day_23)
+    assert result_23.total == 2
+    assert {item.reference_date for item in result_23.items} == {date(2026, 9, 23)}
+    assert {item.id: item.period_settled_amount for item in result_23.items} == {
+        received.id: Decimal("200.00"), paid.id: Decimal("60.00")
+    }
+    assert (summary_23.primary_1, summary_23.primary_2, summary_23.primary_3) == (
+        Decimal("200.00"), Decimal("60.00"), Decimal("140.00")
+    )
+
+
 def test_cancelled_hidden_by_default_and_available_by_filter(session, query_context) -> None:
     user, _income, expense, _account, service = query_context
     transaction = service.create_transaction(

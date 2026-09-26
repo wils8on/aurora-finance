@@ -112,7 +112,7 @@ export function CategoriesPage() {
                   <IconButton label={`${isExpanded ? 'Recolher' : 'Expandir'} ${category.name}`} icon={isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />} aria-expanded={isExpanded} aria-controls={`subcategories-${category.id}`} onClick={() => toggleCategory(category.id)} />
                   <span className={`entity-icon entity-icon--${category.type.toLowerCase()}`}>{category.type === 'INCOME' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}</span>
                   <div className="category-card__title"><h2>{category.name}</h2><StatusBadge tone={category.type === 'INCOME' ? 'success' : 'info'}>{CATEGORY_LABELS[category.type]}</StatusBadge></div>
-                  <Button variant="ghost" onClick={() => { setFieldError(''); setSubmitError(null); setSubcategoryFor(category) }}><Plus size={17} />Nova subcategoria</Button>
+                  <Button variant="ghost" disabled={!category.is_active} title={category.is_active ? undefined : 'Categoria inativa'} onClick={() => { setFieldError(''); setSubmitError(null); setSubcategoryFor(category) }}><Plus size={17} />Nova subcategoria</Button>
                 </div>
                 {isExpanded && (
                   <div className="subcategory-panel" id={`subcategories-${category.id}`}>

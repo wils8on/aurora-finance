@@ -25,7 +25,9 @@ de caixa (`Settlement`) e prioriza rastreabilidade e consistência financeira.
 - testes do frontend com Vitest e React Testing Library.
 
 O Streamlit é um protótipo funcional temporário e a referência de equivalência
-para a migração web. Ele não receberá novos domínios.
+para a migração web. A equivalência funcional e financeira da vertical slice
+foi validada; o Streamlit permanece no repositório aguardando decisão explícita
+de aposentadoria e não receberá novos domínios.
 
 ## Arquitetura alvo — planejada
 
@@ -45,9 +47,11 @@ SQLAlchemy
 SQLite (desenvolvimento) / PostgreSQL (produção)
 ```
 
-A validação final de equivalência, a autenticação real e o PostgreSQL de
-produção ainda não estão implementados. React e FastAPI já cobrem os fluxos da
-vertical slice de Contas, Categorias e Movimentações.
+A equivalência funcional e financeira entre Streamlit e React + FastAPI foi
+validada, incluindo competência, vencimento, caixa e o dia operacional
+`America/Sao_Paulo`. A autenticação real e o PostgreSQL de produção ainda não
+estão implementados. React e FastAPI cobrem os fluxos da vertical slice de
+Contas, Categorias e Movimentações.
 GitHub Pages hospedará somente o frontend estático. O backend Python será
 hospedado separadamente e consumido por HTTPS.
 
@@ -229,9 +233,10 @@ A prioridade atual é **Web Platform Migration**:
 3. fundação React/Vite — concluída;
 4. reproduzir Contas e Categorias — concluído;
 5. reproduzir Movimentações — concluído;
-6. validar equivalência funcional — próximo passo;
-7. preparar os ambientes de produção;
-8. remover Streamlit somente após todos os critérios serem atendidos.
+6. validar equivalência funcional e financeira — concluído;
+7. preparar os ambientes de produção — próximo passo;
+8. decidir explicitamente pela aposentadoria do Streamlit somente após todos os
+   critérios de retirada serem atendidos.
 
 Novos domínios financeiros permanecem bloqueados durante esse marco.
 
